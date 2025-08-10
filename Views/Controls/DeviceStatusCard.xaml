@@ -1,0 +1,58 @@
+﻿<UserControl x:Class="PSTARV2MonitoringApp.Views.Controls.DeviceStatusCard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             d:DataContext="{d:DesignInstance local:DeviceStatusCard, IsDesignTimeCreatable=True}"
+             xmlns:local="clr-namespace:PSTARV2MonitoringApp.Views.Controls"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+    <Grid>
+        <ui:Card
+            Background="#545454"
+            BorderBrush="#646464"
+            BorderThickness="1"
+            Margin="50,10,50,0"
+            >
+            <StackPanel Margin="16">
+                <TextBlock Text="ID 2"
+                    FontSize="24"
+                    FontWeight="SemiBold"
+                    Foreground="#F3F3F3"
+                    Margin="0,0,0,12"/>
+                <!-- 상태 항목들… -->
+                <StackPanel Orientation="Horizontal" Margin="0,20,0,15">
+                    <Border Width="4" Height="16" CornerRadius="2" Background="#60CDFF" Margin="0,0,8,0"/>
+                    <TextBlock Text="통신 상태" Width="100" FontSize="20" Foreground="#F3F3F3" Margin="0,0,50,0"/>
+                    <TextBlock Text="Connected" FontSize="20" FontWeight="Bold" Foreground="#000000"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                    <Border Width="4" Height="16" CornerRadius="2" Background="#60CDFF" Margin="0,0,8,0"/>
+                    <TextBlock Text="운전 상태" Width="100" FontSize="20" Foreground="#F3F3F3" Margin="0,0,50,0"/>
+                    <TextBlock Text="정지" FontSize="20" FontWeight="Bold" Foreground="#000000"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                    <Border Width="4" Height="16" CornerRadius="2" Background="#60CDFF" Margin="0,0,8,0"/>
+                    <TextBlock Text="운전 모드" Width="100" FontSize="20" Foreground="#F3F3F3" Margin="0,0,50,0"/>
+                    <TextBlock Text="STBY" FontSize="20" FontWeight="Bold" Foreground="#000000"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                    <Border Width="4" Height="16" CornerRadius="2" Background="#60CDFF" Margin="0,0,8,0"/>
+                    <TextBlock Text="Stand By" Width="100" FontSize="20" Foreground="#F3F3F3" Margin="0,0,50,0"/>
+                    <TextBlock Text="OFF" FontSize="20" FontWeight="Bold" Foreground="#000000"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                    <Border Width="4" Height="16" CornerRadius="2" Background="#60CDFF" Margin="0,0,8,0"/>
+                    <TextBlock Text="Overload" Width="100" FontSize="20" Foreground="#F3F3F3" Margin="0,0,50,0"/>
+                    <TextBlock Text="ON" FontSize="20" FontWeight="Bold" Foreground="#c21b1b"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                    <Border Width="4" Height="16" CornerRadius="2" Background="#60CDFF" Margin="0,0,8,0"/>
+                    <TextBlock Text="Low Press" Width="100" FontSize="20" Foreground="#F3F3F3" Margin="0,0,50,0"/>
+                    <TextBlock Text="OFF" FontSize="20" FontWeight="Bold" Foreground="#000000"/>
+                </StackPanel>
+            </StackPanel>
+        </ui:Card>
+    </Grid>
+</UserControl>

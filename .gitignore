@@ -1,0 +1,24 @@
+# Visual Studio
+.vs/
+*.vcxproj.user
+*.suo
+
+# Build 결과
+bin/
+obj/
+
+# Rider, VSCode 등 IDE 설정 (선택)
+*.idea/
+.vscode/
+
+# 사용자별 파일
+*.user
+*.userosscache
+*.sln.docstates
+
+# NuGet 패키지
+*.nupkg
+packages/
+
+# 기타
+*.log
