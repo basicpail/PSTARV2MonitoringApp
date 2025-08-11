@@ -15,26 +15,19 @@
                     <UniformGrid Columns="3" Rows="1"/>
                 </ItemsPanelTemplate>
             </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemContainerStyle>
-                <Style TargetType="ContentPresenter">
-                    <Setter Property="Margin" Value="20"/>
-                    <Setter Property="HorizontalAlignment" Value="Center" />
-                </Style>
-            </ItemsControl.ItemContainerStyle>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <ui:Card
                         Background="#545454"
                         BorderBrush="#646464"
                         BorderThickness="1"
-                        Margin="70,20,20,20"
-                        Padding="20"
+                        Padding="20,0,20,0"
+                        Margin="10,0,10,0"
                         MinWidth="250"
-                        MinHeight="380"
-                        Width="450"
+                        MinHeight="350"
+                        Width="360"
                         Height="100"
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Stretch">
+                        >
                         <Grid>
                             <StackPanel Margin="16">
                                 <!-- 장치 ID에 데이터 바인딩 추가 -->
@@ -42,11 +35,11 @@
                                     FontSize="24"
                                     FontWeight="SemiBold"
                                     Foreground="#F3F3F3"
-                                    Margin="0,0,0,12"
+                                    Margin="0,0,0,5"
                                     TextWrapping="Wrap"/>
 
                                 <!-- 통신 상태 바인딩 -->
-                                <Grid Margin="0,20,0,15">
+                                <Grid Margin="0,10,0,10">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="100"/>
@@ -58,7 +51,7 @@
                                 </Grid>
 
                                 <!-- 운전 상태 바인딩 -->
-                                <Grid Margin="0,0,0,15">
+                                <Grid Margin="0,0,0,10">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="100"/>
@@ -70,7 +63,7 @@
                                 </Grid>
 
                                 <!-- 운전 모드 바인딩 -->
-                                <Grid Margin="0,0,0,15">
+                                <Grid Margin="0,0,0,10">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="100"/>
@@ -82,7 +75,7 @@
                                 </Grid>
 
                                 <!-- Stand By 상태 바인딩 -->
-                                <Grid Margin="0,0,0,15">
+                                <Grid Margin="0,0,0,10">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="100"/>
@@ -94,7 +87,7 @@
                                 </Grid>
 
                                 <!-- Overload 상태 바인딩 -->
-                                <Grid Margin="0,0,0,15">
+                                <Grid Margin="0,0,0,10">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="100"/>
@@ -106,7 +99,7 @@
                                 </Grid>
 
                                 <!-- Low Press 상태 바인딩 -->
-                                <Grid Margin="0,0,0,15">
+                                <Grid Margin="0,0,0,10">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="100"/>

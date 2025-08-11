@@ -27,7 +27,7 @@
             <Setter Property="Foreground" Value="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
-            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="BorderBrush" Value="{DynamicResource DividerColorBrush}"/>
             <Setter Property="Padding" Value="8,6"/>
         </Style>
@@ -39,6 +39,8 @@
             <Setter Property="BorderBrush" Value="{DynamicResource GridLineBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Background" Value="{DynamicResource RowBackgroundBrush}"/>
+            <Setter Property="FontSize" Value="20"/>
+            <Setter Property="Margin" Value="1" />
             <!-- Template에서 CornerRadius만 0으로 -->
             <Setter Property="Template">
                 <Setter.Value>
@@ -47,7 +49,7 @@
                               Background="{TemplateBinding Background}" 
                               BorderBrush="{TemplateBinding BorderBrush}"
                               BorderThickness="{TemplateBinding BorderThickness}"
-                              CornerRadius="0">
+                              CornerRadius="3">
                             <DataGridCellsPresenter/>
                         </Border>
                     </ControlTemplate>
@@ -57,11 +59,9 @@
         
         <!-- DataGrid 공통 셀 스타일 -->
         <Style x:Key="GridCellStyle" TargetType="DataGridCell">
-            <Setter Property="Padding" Value="8,4"/>
             <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
-            <Setter Property="HorizontalContentAlignment" Value="Center"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Margin" Value="2,0,0,0" />
         </Style>
     </Page.Resources>
     
@@ -105,7 +105,7 @@
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Grid.ColumnSpan="2">
                             <ui:SymbolIcon Symbol="Info28" FontSize="20" FontWeight="Bold" Margin="0,0,8,0" Foreground="#4F8EF7"/>
                             <TextBlock Text="종합 상황 정보"
-                                FontSize="14"
+                                FontSize="20"
                                 FontWeight="SemiBold"
                                 Foreground="#F3F3F3"
                                 VerticalAlignment="Center"/>
@@ -114,6 +114,7 @@
                         <!-- 우측 필터 버튼 -->
                         <ui:Button Grid.Column="2"
                             Content="필터"
+                            Command="{Binding ViewModel.ShowIdFilterDialogCommand}"
                             Background="#212121"
                             Foreground="#F3F3F3"
                             BorderBrush="#33334D"/>
@@ -138,9 +139,9 @@
                         Background="#000000"
                         >
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Date"     Binding="{Binding Date, StringFormat=HH:mm:ss}" Width ="2*" MinWidth="150"/>
-                            <DataGridTextColumn Header="ID"       Binding="{Binding Id}"                          Width="*" MinWidth="50"/>
-                            <DataGridTextColumn Header="Contents" Binding="{Binding Contents}"                    Width="8*"/>
+                            <DataGridTextColumn Header="Date"     Binding="{Binding Date, StringFormat=HH:mm:ss}" Width ="6*" MinWidth="150"/>
+                            <DataGridTextColumn Header="ID"       Binding="{Binding Id}" Width="2*" MinWidth="50"/>
+                            <DataGridTextColumn Header="Contents" Binding="{Binding Contents}" Width="10*"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>
@@ -148,11 +149,11 @@
 
             <!-- ▶ Raw Data 카드 -->
             <ui:Card
-            Grid.Column="1"
-            Background="#323232"
-            BorderBrush="#434343"
-            BorderThickness="1"
-            Margin="8,0,0,0">
+                Grid.Column="1"
+                Background="#323232"
+                BorderBrush="#434343"
+                BorderThickness="1"
+                Margin="8,0,0,0">
 
                 <Grid>
                     <Grid.RowDefinitions>
@@ -161,7 +162,7 @@
                     </Grid.RowDefinitions>
 
                     <!-- ① Header -->
-                    <Grid Grid.Row="0" Margin="16,12,16,8">
+                    <Grid Grid.Row="0" Margin="16,0,16,8">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition/>
                             <ColumnDefinition Width="Auto"/>
@@ -172,7 +173,7 @@
                             <ui:SymbolIcon Symbol="Info28" FontSize="20" FontWeight="Bold" Margin="0,0,8,0" Foreground="#4F8EF7"/>
                             <!--<ui:InfoBadge Icon="Info28" Margin="0,0,8,0"/>-->
                             <TextBlock Text="Raw Data"
-                                FontSize="14"
+                                FontSize="20"
                                 FontWeight="SemiBold"
                                 Foreground="#F3F3F3"
                                 VerticalAlignment="Center"/>
@@ -241,7 +242,7 @@
         <!-- 하단: 개별 ID 상태 카드 3개 -->
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
             <Grid x:Name="deviceCard" Grid.Column="0" Visibility="Visible">
