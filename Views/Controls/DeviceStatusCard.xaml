@@ -9,50 +9,118 @@
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
     <Grid>
-        <ui:Card
-            Background="#545454"
-            BorderBrush="#646464"
-            BorderThickness="1"
-            Margin="50,10,50,0"
-            >
-            <StackPanel Margin="16">
-                <TextBlock Text="ID 2"
-                    FontSize="24"
-                    FontWeight="SemiBold"
-                    Foreground="#F3F3F3"
-                    Margin="0,0,0,12"/>
-                <!-- 상태 항목들… -->
-                <StackPanel Orientation="Horizontal" Margin="0,20,0,15">
-                    <Border Width="4" Height="16" CornerRadius="2" Background="#60CDFF" Margin="0,0,8,0"/>
-                    <TextBlock Text="통신 상태" Width="100" FontSize="20" Foreground="#F3F3F3" Margin="0,0,50,0"/>
-                    <TextBlock Text="Connected" FontSize="20" FontWeight="Bold" Foreground="#000000"/>
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                    <Border Width="4" Height="16" CornerRadius="2" Background="#60CDFF" Margin="0,0,8,0"/>
-                    <TextBlock Text="운전 상태" Width="100" FontSize="20" Foreground="#F3F3F3" Margin="0,0,50,0"/>
-                    <TextBlock Text="정지" FontSize="20" FontWeight="Bold" Foreground="#000000"/>
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                    <Border Width="4" Height="16" CornerRadius="2" Background="#60CDFF" Margin="0,0,8,0"/>
-                    <TextBlock Text="운전 모드" Width="100" FontSize="20" Foreground="#F3F3F3" Margin="0,0,50,0"/>
-                    <TextBlock Text="STBY" FontSize="20" FontWeight="Bold" Foreground="#000000"/>
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                    <Border Width="4" Height="16" CornerRadius="2" Background="#60CDFF" Margin="0,0,8,0"/>
-                    <TextBlock Text="Stand By" Width="100" FontSize="20" Foreground="#F3F3F3" Margin="0,0,50,0"/>
-                    <TextBlock Text="OFF" FontSize="20" FontWeight="Bold" Foreground="#000000"/>
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                    <Border Width="4" Height="16" CornerRadius="2" Background="#60CDFF" Margin="0,0,8,0"/>
-                    <TextBlock Text="Overload" Width="100" FontSize="20" Foreground="#F3F3F3" Margin="0,0,50,0"/>
-                    <TextBlock Text="ON" FontSize="20" FontWeight="Bold" Foreground="#c21b1b"/>
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                    <Border Width="4" Height="16" CornerRadius="2" Background="#60CDFF" Margin="0,0,8,0"/>
-                    <TextBlock Text="Low Press" Width="100" FontSize="20" Foreground="#F3F3F3" Margin="0,0,50,0"/>
-                    <TextBlock Text="OFF" FontSize="20" FontWeight="Bold" Foreground="#000000"/>
-                </StackPanel>
-            </StackPanel>
-        </ui:Card>
+        <ItemsControl ItemsSource="{Binding}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <UniformGrid Columns="3" Rows="1"/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemContainerStyle>
+                <Style TargetType="ContentPresenter">
+                    <Setter Property="Margin" Value="20"/>
+                    <Setter Property="HorizontalAlignment" Value="Center" />
+                </Style>
+            </ItemsControl.ItemContainerStyle>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <ui:Card
+                        Background="#545454"
+                        BorderBrush="#646464"
+                        BorderThickness="1"
+                        Margin="70,20,20,20"
+                        Padding="20"
+                        MinWidth="250"
+                        MinHeight="380"
+                        Width="450"
+                        Height="100"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch">
+                        <Grid>
+                            <StackPanel Margin="16">
+                                <!-- 장치 ID에 데이터 바인딩 추가 -->
+                                <TextBlock Text="{Binding DeviceId}"
+                                    FontSize="24"
+                                    FontWeight="SemiBold"
+                                    Foreground="#F3F3F3"
+                                    Margin="0,0,0,12"
+                                    TextWrapping="Wrap"/>
+
+                                <!-- 통신 상태 바인딩 -->
+                                <Grid Margin="0,20,0,15">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Width="4" Height="16" CornerRadius="2" Background="#60CDFF" Margin="0,0,10,10"/>
+                                    <TextBlock Grid.Column="1" Text="통신 상태" FontSize="20" Foreground="#F3F3F3" />
+                                    <TextBlock Grid.Column="2" Text="{Binding CommStatus}" FontSize="20" FontWeight="Bold" Foreground="#000000" TextWrapping="Wrap" Margin="50,0,0,10"/>
+                                </Grid>
+
+                                <!-- 운전 상태 바인딩 -->
+                                <Grid Margin="0,0,0,15">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Width="4" Height="16" CornerRadius="2" Background="#60CDFF" Margin="0,0,10,10"/>
+                                    <TextBlock Grid.Column="1" Text="운전 상태" FontSize="20" Foreground="#F3F3F3"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding RunStatus}" FontSize="20" FontWeight="Bold" Foreground="#000000" TextWrapping="Wrap" Margin="50,0,0,10"/>
+                                </Grid>
+
+                                <!-- 운전 모드 바인딩 -->
+                                <Grid Margin="0,0,0,15">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Width="4" Height="16" CornerRadius="2" Background="#60CDFF" Margin="0,0,10,10"/>
+                                    <TextBlock Grid.Column="1" Text="운전 모드" FontSize="20" Foreground="#F3F3F3"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding RunMode}" FontSize="20" FontWeight="Bold" Foreground="#000000" TextWrapping="Wrap" Margin="50,0,0,10"/>
+                                </Grid>
+
+                                <!-- Stand By 상태 바인딩 -->
+                                <Grid Margin="0,0,0,15">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Width="4" Height="16" CornerRadius="2" Background="#60CDFF" Margin="0,0,10,10"/>
+                                    <TextBlock Grid.Column="1" Text="Stand By" FontSize="20" Foreground="#F3F3F3"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding StandByStatus}" FontSize="20" FontWeight="Bold" Foreground="#000000" TextWrapping="Wrap" Margin="50,0,0,10"/>
+                                </Grid>
+
+                                <!-- Overload 상태 바인딩 -->
+                                <Grid Margin="0,0,0,15">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Width="4" Height="16" CornerRadius="2" Background="#60CDFF" Margin="0,0,10,10"/>
+                                    <TextBlock Grid.Column="1" Text="Overload" FontSize="20" Foreground="#F3F3F3"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding OverloadStatus}" FontSize="20" FontWeight="Bold" Foreground="#000000" TextWrapping="Wrap" Margin="50,0,0,10"/>
+                                </Grid>
+
+                                <!-- Low Press 상태 바인딩 -->
+                                <Grid Margin="0,0,0,15">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Width="4" Height="16" CornerRadius="2" Background="#60CDFF" Margin="0,0,10,10"/>
+                                    <TextBlock Grid.Column="1" Text="Low Press" FontSize="20" Foreground="#F3F3F3"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding LowPressureStatus}" FontSize="20" FontWeight="Bold" Foreground="#000000" TextWrapping="Wrap" Margin="50,0,0,10"/>
+                                </Grid>
+                            </StackPanel>
+                        </Grid>
+                    </ui:Card>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
     </Grid>
 </UserControl>

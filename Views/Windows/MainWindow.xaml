@@ -44,7 +44,7 @@
                 <ui:BreadcrumbBar x:Name="BreadcrumbBar" Margin="20,20,20,20"/>
             </ui:NavigationView.Header>
             <ui:NavigationView.ContentOverlay>
-                <Grid Background="LightGray" Opacity="0.1">
+                <Grid>
                     <ui:SnackbarPresenter x:Name="SnackbarPresenter"/>
                 </Grid>
             </ui:NavigationView.ContentOverlay>

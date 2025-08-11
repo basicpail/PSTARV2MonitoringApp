@@ -1,4 +1,5 @@
 ﻿using PSTARV2MonitoringApp.ViewModels.Windows;
+using System.Windows.Controls;
 using Wpf.Ui;
 using Wpf.Ui.Abstractions;
 using Wpf.Ui.Appearance;
@@ -26,7 +27,7 @@ namespace PSTARV2MonitoringApp.Views.Windows
 
             navigationService.SetNavigationControl(RootNavigation);
 
-            ApplicationThemeManager.Apply(ApplicationTheme.Dark); //Dark 테마로 실행
+            
         }
 
         #region INavigationWindow methods

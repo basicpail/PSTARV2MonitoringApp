@@ -7,15 +7,15 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:Controls="clr-namespace:PSTARV2MonitoringApp.Views.Controls"
-    ScrollViewer.CanContentScroll="True"
     Title="DashboardPage"
     d:DataContext="{d:DesignInstance local:DashboardPage,
                                      IsDesignTimeCreatable=False}"
-    d:DesignHeight="450"
-    d:DesignWidth="800"
+    d:DesignHeight="720"
+    d:DesignWidth="1280"
     ui:Design.Background="{ui:ThemeResource ApplicationBackgroundBrush}"
     ui:Design.Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
     Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
+    ScrollViewer.CanContentScroll="True"
     mc:Ignorable="d">
 
     <!-- 한 번만 선언하는 Resources -->
@@ -64,11 +64,13 @@
             <Setter Property="BorderThickness" Value="1"/>
         </Style>
     </Page.Resources>
-
+    
+    
     <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="2*" />
-            <RowDefinition Height="1*" />
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="1*"/>
         </Grid.RowDefinitions>
 
         <!-- 상단: 두 개의 카드 -->
@@ -89,7 +91,7 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="300"/>
                     </Grid.RowDefinitions>
 
                     <!-- ① Header 영역 -->
@@ -103,10 +105,10 @@
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Grid.ColumnSpan="2">
                             <ui:SymbolIcon Symbol="Info28" FontSize="20" FontWeight="Bold" Margin="0,0,8,0" Foreground="#4F8EF7"/>
                             <TextBlock Text="종합 상황 정보"
-                             FontSize="14"
-                             FontWeight="SemiBold"
-                             Foreground="#F3F3F3"
-                             VerticalAlignment="Center"/>
+                                FontSize="14"
+                                FontWeight="SemiBold"
+                                Foreground="#F3F3F3"
+                                VerticalAlignment="Center"/>
                         </StackPanel>
 
                         <!-- 우측 필터 버튼 -->
@@ -134,11 +136,7 @@
                         BorderBrush="#000000"
                         Foreground="#000000"
                         Background="#000000"
-                        HorizontalScrollBarVisibility="Auto"
-                        VerticalScrollBarVisibility="Auto"
-                        ScrollViewer.CanContentScroll="True"
-                        VirtualizingPanel.VirtualizationMode="Recycling"
-                        VirtualizingPanel.IsVirtualizing="True">
+                        >
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Date"     Binding="{Binding Date, StringFormat=HH:mm:ss}" Width ="2*" MinWidth="150"/>
                             <DataGridTextColumn Header="ID"       Binding="{Binding Id}"                          Width="*" MinWidth="50"/>
@@ -159,7 +157,7 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="300"/>
                     </Grid.RowDefinitions>
 
                     <!-- ① Header -->
@@ -174,19 +172,19 @@
                             <ui:SymbolIcon Symbol="Info28" FontSize="20" FontWeight="Bold" Margin="0,0,8,0" Foreground="#4F8EF7"/>
                             <!--<ui:InfoBadge Icon="Info28" Margin="0,0,8,0"/>-->
                             <TextBlock Text="Raw Data"
-                             FontSize="14"
-                             FontWeight="SemiBold"
-                             Foreground="#F3F3F3"
-                             VerticalAlignment="Center"/>
+                                FontSize="14"
+                                FontWeight="SemiBold"
+                                Foreground="#F3F3F3"
+                                VerticalAlignment="Center"/>
                         </StackPanel>
 
                         <!-- 출력 시작 버튼 -->
                         <ui:Button Grid.Column="1"
-                           Content="출력 시작"
-                           Margin="8,0,4,0"
-                           Background="#212121"
-                           Foreground="#F3F3F3"
-                           BorderBrush="#33334D"/>
+                            Content="출력 시작"
+                            Margin="8,0,4,0"
+                            Background="#212121"
+                            Foreground="#F3F3F3"
+                            BorderBrush="#33334D"/>
                         <!-- 필터 버튼 -->
                         <ui:Button Grid.Column="2"
                             Content="필터"
@@ -212,9 +210,6 @@
                         BorderBrush="#000000"
                         Foreground="#000000"
                         Background="#000000"
-                        HorizontalScrollBarVisibility="Auto"
-                        VerticalScrollBarVisibility="Auto"
-                        ScrollViewer.CanContentScroll="True"
                         >
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="STBY Start" Binding="{Binding STBY_Start}"  Width ="*" MinWidth="80"/>
@@ -231,32 +226,49 @@
             </ui:Card>
         </Grid>
 
-        <!-- 하단: 개별 ID 상태 카드 3개 -->
         <Grid Grid.Row="1">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,10">
+                <ui:Button 
+                Content="카드 상태 테스트" 
+                Command="{Binding DeviceStatusCardViewModel.UpdateRandomDeviceStatusCommand}"
+                Background="#212121"
+                Foreground="#F3F3F3"
+                BorderBrush="#33334D"
+                Margin="0,0,10,0"/>
+            </StackPanel>
+        </Grid>
+        
+        <!-- 하단: 개별 ID 상태 카드 3개 -->
+        <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <!-- ID 1 -->
-            <Controls:DeviceStatusCard
-                Grid.Column="0"
-            />
+            <Grid x:Name="deviceCard" Grid.Column="0" Visibility="Visible">
+                <Controls:DeviceStatusCard DataContext="{Binding DeviceStatusCardViewModel.DeviceStatusCardModels}"/>
+            </Grid>
 
-            <!-- ID 2 -->
-            <Controls:DeviceStatusCard
-                Grid.Column="1"
-            />
+            <!-- ID 1 --><!--
+            <Grid x:Name="deviceCard1" Grid.Column="0" Visibility="Collapsed">
+                <Controls:DeviceStatusCard/>
+            </Grid>
 
-            <!-- ID 3 -->
-            <Controls:DeviceStatusCard
-                Grid.Column="2"
-            />
+            --><!-- ID 2 --><!--
+            <Grid x:Name="deviceCard2" Grid.Column="1" Visibility="Collapsed">
+                <Controls:DeviceStatusCard />
+            </Grid>
+
+            --><!-- ID 3 --><!--
+            <Grid x:Name="deviceCard3" Grid.Column="2" Visibility="Collapsed">
+                <Controls:DeviceStatusCard />
+            </Grid>-->
+
+            
         </Grid>
     </Grid>
+</Page>
 
-    <!--<Grid VerticalAlignment="Top" Margin="-20,20,0,0">
+<!--<Grid VerticalAlignment="Top" Margin="-20,20,0,0">
         <Grid.RowDefinitions>
             <RowDefinition Height="2*" />
             <RowDefinition Height="1*" />
@@ -325,4 +337,3 @@
             </Grid>
         </Grid>
     </Grid>-->
-</Page>

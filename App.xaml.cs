@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using PSTARV2MonitoringApp.Services;
+using PSTARV2MonitoringApp.ViewModels.Controls;
 using PSTARV2MonitoringApp.ViewModels.Pages;
 using PSTARV2MonitoringApp.ViewModels.Windows;
 using PSTARV2MonitoringApp.Views.Pages;
@@ -52,6 +53,7 @@ namespace PSTARV2MonitoringApp
                 services.AddSingleton<TestViewModel>();
                 services.AddSingleton<SettingsPage>();
                 services.AddSingleton<SettingsViewModel>();
+                services.AddSingleton<DeviceStatusCardViewModel>();
             }).Build();
 
         /// <summary>
