@@ -116,7 +116,11 @@
                     Height="Auto"
                     Margin="2">
                     <Grid>
-                        <TextBlock Text="Card 1" FontSize="16" FontWeight="SemiBold" Foreground="#F3F3F3" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Image Source="/Assets/DeviceImages/PSTAR-V2-5-H.png" 
+                           Stretch="Uniform" 
+                           HorizontalAlignment="Center" 
+                           VerticalAlignment="Center"
+                           Margin="10"/>
                     </Grid>
                 </ui:Card>
             </Border>

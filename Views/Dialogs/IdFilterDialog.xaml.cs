@@ -1,23 +1,29 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
+using PSTARV2MonitoringApp.ViewModels.Dialogs;
 using Wpf.Ui.Controls;
 
-namespace PSTARV2MonitoringApp.Views.Dialogs
+namespace PSTARV2MonitoringApp.Views.Dialogs    
 {
-    public partial class IdFilterDialog : ContentDialog
+    public partial class IdFilterDialog : UserControl
     {
-        public string? SelectedId { get; private set; }
-        public bool IsFilterCleared { get; private set; }
+        private readonly IdFilterDialogViewModel _viewModel;
+        
+        public string SelectedId { get; private set; }
+        public bool FilterCleared { get; private set; }
 
-        public IdFilterDialog(IEnumerable<string> availableIds)
+        public IdFilterDialog()
         {
+            _viewModel = new IdFilterDialogViewModel();
+            DataContext = _viewModel;
             InitializeComponent();
-            LoadAvailableIds(availableIds);
         }
 
-        private void LoadAvailableIds(IEnumerable<string> availableIds)
+        public void LoadAvailableIds(IEnumerable<string> availableIds)
         {
             // 기존 라디오 버튼들 제거 (All 제외)
             var buttonsToRemove = IdSelectionPanel.Children
@@ -30,6 +36,9 @@ namespace PSTARV2MonitoringApp.Views.Dialogs
                 IdSelectionPanel.Children.Remove(button);
             }
 
+            // ViewModel에 ID 목록 업데이트
+            _viewModel.UpdateAvailableIds(availableIds);
+
             // 새로운 ID 라디오 버튼들 추가
             foreach (var id in availableIds.Distinct().OrderBy(x => x))
             {
@@ -38,43 +47,44 @@ namespace PSTARV2MonitoringApp.Views.Dialogs
                     Content = id,
                     GroupName = "IdFilter",
                     FontSize = 14,
+                    Foreground = Brushes.White,
                     Margin = new Thickness(0, 5, 0, 0),
                     Tag = id
                 };
+                
+                // 현재 선택된 필터와 일치하면 선택 상태로 설정
+                if (id == _viewModel.SelectedIdFilter)
+                {
+                    radioButton.IsChecked = true;
+                    AllRadioButton.IsChecked = false;
+                }
+                
                 IdSelectionPanel.Children.Add(radioButton);
             }
         }
 
-        private void OnPrimaryButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
+        public void SetSelectedId(string id)
         {
-            var selectedRadioButton = IdSelectionPanel.Children
-                .OfType<RadioButton>()
-                .FirstOrDefault(rb => rb.IsChecked == true);
-
-            if (selectedRadioButton?.Tag?.ToString() != null)
+            _viewModel.SelectedIdFilter = id;
+            
+            // 라디오 버튼 선택 상태 업데이트
+            if (string.IsNullOrEmpty(id))
             {
-                SelectedId = selectedRadioButton.Tag.ToString();
+                AllRadioButton.IsChecked = true;
             }
             else
             {
-                SelectedId = null; // 전체 보기
+                AllRadioButton.IsChecked = false;
+                
+                foreach (var radioButton in IdSelectionPanel.Children.OfType<RadioButton>())
+                {
+                    if (radioButton.Tag?.ToString() == id)
+                    {
+                        radioButton.IsChecked = true;
+                        break;
+                    }
+                }
             }
-
-            IsFilterCleared = false;
-        }
-
-        private void OnSecondaryButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
-        {
-            SelectedId = null;
-            IsFilterCleared = false;
-        }
-
-        private void OnClearFilterClick(object sender, RoutedEventArgs e)
-        {
-            AllRadioButton.IsChecked = true;
-            SelectedId = null;
-            IsFilterCleared = true;
-            Hide();
         }
     }
 }

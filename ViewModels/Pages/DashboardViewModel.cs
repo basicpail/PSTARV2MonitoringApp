@@ -1,16 +1,17 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PSTARV2MonitoringApp.Models;
+using PSTARV2MonitoringApp.Views.Dialogs;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
+using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using Wpf.Ui.Controls;
-using System.Windows;
-using System.Windows.Media;
 using MessageBox = System.Windows.MessageBox;
 
 namespace PSTARV2MonitoringApp.ViewModels.Pages
@@ -23,7 +24,7 @@ namespace PSTARV2MonitoringApp.ViewModels.Pages
         [ObservableProperty]
         private string? _selectedIdFilter = null; // 선택된 ID 필터
 
-        private const int MaxItems = 16;          // 할당 할 최대 데이터 수
+        private const int MaxItems = 20;      // 할당 할 최대 데이터 수
         private readonly Random _rnd = new Random();
         private readonly DispatcherTimer _timer;
 
@@ -175,104 +176,42 @@ namespace PSTARV2MonitoringApp.ViewModels.Pages
         {
             try
             {
-                // 라디오 버튼들을 담을 StackPanel 생성
-                var radioButtonPanel = new StackPanel();
-                var radioButtons = new List<System.Windows.Controls.RadioButton>();
+                // IdFilterDialog 인스턴스 생성
+                var idFilterDialog = new IdFilterDialog();
 
-                // "전체 보기" 라디오 버튼 추가
-                var allRadioButton = new System.Windows.Controls.RadioButton
-                {
-                    Content = "전체 보기",
-                    GroupName = "IdFilter",
-                    IsChecked = string.IsNullOrEmpty(SelectedIdFilter),
-                    FontSize = 14,
-                    //Margin = new Thickness(0, 5),
-                    Foreground = Brushes.White,
-                    Tag = null
-                };
-                radioButtons.Add(allRadioButton);
-                radioButtonPanel.Children.Add(allRadioButton);
+                // 사용 가능한 ID 목록 전달
+                idFilterDialog.LoadAvailableIds(AvailableIds);
 
-                // 사용 가능한 ID별 라디오 버튼 추가
-                foreach (var id in AvailableIds.OrderBy(x => x))
-                {
-                    var radioButton = new System.Windows.Controls.RadioButton
-                    {
-                        Content = id,
-                        GroupName = "IdFilter",
-                        IsChecked = SelectedIdFilter == id,
-                        FontSize = 14,
-                        //Margin = new Thickness(0, 5),
-                        Foreground = Brushes.White,
-                        Tag = id
-                    };
-                    radioButtons.Add(radioButton);
-                    radioButtonPanel.Children.Add(radioButton);
-                }
+                // 현재 선택된 필터 설정
+                idFilterDialog.SetSelectedId(SelectedIdFilter);
 
-                // ScrollViewer로 감싸기
-                var scrollViewer = new ScrollViewer
-                {
-                    Content = radioButtonPanel,
-                    VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                    MaxHeight = 200
-                };
-
-                // 메인 Grid 생성
-                var mainGrid = new Grid
-                {
-                    Margin = new Thickness(20),
-                    Background = new SolidColorBrush(Color.FromRgb(45, 45, 48))
-                };
-
-                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-
-                // 제목 TextBlock
-                var titleTextBlock = new System.Windows.Controls.TextBlock
-                {
-                    Text = "필터링할 ID를 선택하세요:",
-                    FontSize = 16,
-                    FontWeight = FontWeights.SemiBold,
-                    Foreground = Brushes.White,
-                    Margin = new Thickness(0, 0, 0, 15)
-                };
-                Grid.SetRow(titleTextBlock, 0);
-
-                // ScrollViewer를 Grid에 추가
-                Grid.SetRow(scrollViewer, 1);
-
-                // 필터 해제 버튼
-                var clearButton = new Wpf.Ui.Controls.Button
-                {
-                    Content = "필터 해제",
-                    Background = new SolidColorBrush(Color.FromRgb(108, 117, 125)),
-                    Foreground = Brushes.White,
-                    Margin = new Thickness(0, 15, 0, 0),
-                    HorizontalAlignment = HorizontalAlignment.Right
-                };
-
-                Grid.SetRow(clearButton, 2);
-
-                // Grid에 요소들 추가
-                mainGrid.Children.Add(titleTextBlock);
-                mainGrid.Children.Add(scrollViewer);
-                mainGrid.Children.Add(clearButton);
+                // IdFilterDialog의 크기 속성 설정
+                idFilterDialog.HorizontalAlignment = HorizontalAlignment.Stretch;
+                idFilterDialog.VerticalAlignment = VerticalAlignment.Stretch;
+                idFilterDialog.Width = double.NaN; // Auto
+                idFilterDialog.Height = double.NaN; // Auto
 
                 // ContentDialog 생성
                 var dialog = new ContentDialog
                 {
-                    Title = "ID 필터",
-                    Content = mainGrid,
-                    PrimaryButtonText = "확인",
+                    Content = idFilterDialog,
+                    PrimaryButtonText = "적용",
                     SecondaryButtonText = "취소",
-                    Background = new SolidColorBrush(Color.FromRgb(45, 45, 48)),
-                    Foreground = Brushes.White,
-                    BorderBrush = new SolidColorBrush(Color.FromRgb(63, 63, 70)),
-                    BorderThickness = new Thickness(1),
-                    Width = 400,
-                    Height = 350
+                    CloseButtonText = "닫기",
+                    DefaultButton = ContentDialogButton.Primary,
+                    IsPrimaryButtonEnabled = true,
+                    Effect = null,
+
+                    // 다이얼로그 크기 설정
+                    MinWidth = 380,
+                    MinHeight = 300,
+                    MaxWidth = 500,
+                    MaxHeight = 600,
+
+                    // 컨텐츠 스타일 설정
+                    //ContentMargin = new Thickness(0),
+                    HorizontalContentAlignment = HorizontalAlignment.Stretch,
+                    VerticalContentAlignment = VerticalAlignment.Stretch
                 };
 
                 // ContentPresenter를 DialogHost로 설정
@@ -281,24 +220,22 @@ namespace PSTARV2MonitoringApp.ViewModels.Pages
                     dialog.DialogHost = contentPresenter;
                 }
 
-                // 필터 해제 버튼 이벤트
-                clearButton.Click += (s, e) =>
-                {
-                    allRadioButton.IsChecked = true;
-                    foreach (var rb in radioButtons.Where(rb => rb.Tag != null))
-                    {
-                        rb.IsChecked = false;
-                    }
-                };
-
                 // 다이얼로그 표시
                 var result = await dialog.ShowAsync();
 
+
                 // 결과 처리
-                if (result == ContentDialogResult.Primary)
+                if (result == ContentDialogResult.Primary || idFilterDialog.FilterCleared)
                 {
-                    var selectedRadioButton = radioButtons.FirstOrDefault(rb => rb.IsChecked == true);
-                    SelectedIdFilter = selectedRadioButton?.Tag?.ToString();
+                    // 다이얼로그에서 선택된 ID 또는 필터가 해제된 경우
+                    var selectedRadioButton = idFilterDialog.FindName("IdSelectionPanel") is StackPanel panel
+                        ? panel.Children.OfType<RadioButton>().FirstOrDefault(rb => rb.IsChecked == true)
+                        : null;
+
+                    SelectedIdFilter = selectedRadioButton?.Tag?.ToString() == "ALL" || selectedRadioButton == null
+                        ? null
+                        : selectedRadioButton.Tag?.ToString();
+
                     ApplyIdFilter();
                 }
             }
@@ -308,17 +245,5 @@ namespace PSTARV2MonitoringApp.ViewModels.Pages
                 MessageBox.Show($"필터 다이얼로그 오류: {ex.Message}", "오류", System.Windows.MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-
-        // 필터 해제 명령
-        [RelayCommand]
-        public void ClearIdFilter()
-        {
-            SelectedIdFilter = null;
-            ApplyIdFilter();
-        }
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-        protected void RaisePropertyChanged(string propName)
-            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
     }
 }
