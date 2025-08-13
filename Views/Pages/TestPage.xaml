@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:PSTARV2MonitoringApp.Views.Pages"
+    xmlns:Controls="clr-namespace:PSTARV2MonitoringApp.Views.Controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="clr-namespace:PSTARV2MonitoringApp.Models"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
@@ -57,6 +58,7 @@
             <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="BorderThickness" Value="1"/>
         </Style>
+        
 
         <Style x:Key="CardBorderStyle" TargetType="Border">
             <Setter Property="BorderBrush" Value="#60CDFF"/>
@@ -105,7 +107,7 @@
             </Grid.ColumnDefinitions>
 
             <!-- Card 1 -->
-            <Border Grid.Column="0" Style="{StaticResource CardBorderStyle}" Margin="0,0,8,0">
+            <Border Grid.Column="0" Style="{StaticResource CardBorderStyle}">
                 <ui:Card
                     Background="#323232"
                     BorderBrush="#434343"
@@ -113,20 +115,18 @@
                     HorizontalContentAlignment="Stretch"
                     VerticalContentAlignment="Stretch"
                     Width="Auto"
-                    Height="Auto"
-                    Margin="2">
+                    Height="Auto">
                     <Grid>
-                        <Image Source="/Assets/DeviceImages/PSTAR-V2-5-H.png" 
+                        <Image Source="/Assets/DeviceImages/PSTAR-V2-5-H.png"
                            Stretch="Uniform" 
-                           HorizontalAlignment="Center" 
-                           VerticalAlignment="Center"
-                           Margin="10"/>
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"/>
                     </Grid>
                 </ui:Card>
             </Border>
 
             <!-- Card 2 -->
-            <Border Grid.Column="1" Style="{StaticResource CardBorderStyle}" Margin="0,0,8,0">
+            <Border Grid.Column="1" Style="{StaticResource CardBorderStyle}">
                 <ui:Card
                     Background="#323232"
                     BorderBrush="#434343"
@@ -134,16 +134,18 @@
                     HorizontalContentAlignment="Stretch"
                     VerticalContentAlignment="Stretch"
                     Width="Auto"
-                    Height="Auto"
-                    Margin="2">
+                    Height="Auto">
                     <Grid>
-                        <TextBlock Text="Card 2" FontSize="16" FontWeight="SemiBold" Foreground="#F3F3F3" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Image Source="/Assets/DeviceImages/PSTAR-V2-5-H.png"
+                           Stretch="Uniform" 
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"/>         
                     </Grid>
                 </ui:Card>
             </Border>
 
             <!-- Card 3 -->
-            <Border Grid.Column="2" Style="{StaticResource CardBorderStyle}" Margin="0,0,8,0">
+            <Border Grid.Column="2" Style="{StaticResource CardBorderStyle}">
                 <ui:Card
                     Background="#323232"
                     BorderBrush="#434343"
@@ -151,10 +153,9 @@
                     HorizontalContentAlignment="Stretch"
                     VerticalContentAlignment="Stretch"
                     Width="Auto"
-                    Height="Auto"
-                    Margin="2">
+                    Height="Auto">
                     <Grid>
-                        <TextBlock Text="Card 3" FontSize="16" FontWeight="SemiBold" Foreground="#F3F3F3" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Controls:PSTARDevicePanel/>
                     </Grid>
                 </ui:Card>
             </Border>
