@@ -24,5 +24,25 @@ namespace PSTARV2MonitoringApp.Views.Dialogs
         {
             InitializeComponent();
         }
+
+        public string GetSelectedDeviceId()
+        {
+            if(DeviceIdComboBox.SelectedItem is ComboBoxItem selectedItem)
+            {
+                //"ID" 접두사 제거하고 숫자만 반환
+                string content = selectedItem.Content.ToString();
+                return content;
+            }
+            return null;
+        }
+
+        public string GetSelectedDeviceModel()
+        {
+            if(DeviceTypeComboBox.SelectedItem is ComboBoxItem selectedItem)
+            {
+                return selectedItem.Content.ToString();
+            }
+            return null;
+        }
     }
 }

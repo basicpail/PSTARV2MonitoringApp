@@ -17,24 +17,25 @@
 
         <TextBlock Grid.Row="0"
                    Text="추가할 장치의 ID와 Model을 선택하세요."
-                   FontSize="24"
+                   FontSize="20"
                    FontWeight="Bold"
                    Foreground="#F3F3F3"
-                   Margin="10"/>
+                   Margin="0,0,0,10"/>
 
 
         <ComboBox x:Name="DeviceIdComboBox"
                   Grid.Row="2"
-                  Margin="10"
+                  Margin="300,0,300,0"
                   Width="200"
-                  Height="30"
+                  Height="40"
                   HorizontalAlignment="Stretch"
                   VerticalAlignment="Center"
                   FontSize="14"
                   Foreground="#F3F3F3"
                   Background="#545454"
                   BorderBrush="#646464"
-                  BorderThickness="1">
+                  BorderThickness="1"
+                  SelectedIndex="0">
             <ComboBoxItem Content="ID 1" />
             <ComboBoxItem Content="ID 2" />
             <ComboBoxItem Content="ID 3" />
@@ -44,14 +45,15 @@
             Grid.Row="3"
             Margin="10"
             Width="200"
-            Height="30"
+            Height="40"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Center"
             FontSize="14"
             Foreground="#F3F3F3"
             Background="#545454"
             BorderBrush="#646464"
-            BorderThickness="1">
+            BorderThickness="1"
+            SelectedIndex="1">
             <ComboBoxItem Content="PSTAR-V2-5" />
             <ComboBoxItem Content="PSTAR-V2-5H" />
             <ComboBoxItem Content="PSTAR-V2-5-S" />

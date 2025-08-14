@@ -54,6 +54,7 @@ namespace PSTARV2MonitoringApp
                 services.AddSingleton<SettingsPage>();
                 services.AddSingleton<SettingsViewModel>();
                 services.AddSingleton<DeviceStatusCardViewModel>();
+                services.AddSingleton<PSTARDevicePanelViewModel>();
             }).Build();
 
         /// <summary>

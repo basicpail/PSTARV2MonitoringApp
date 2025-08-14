@@ -203,10 +203,10 @@ namespace PSTARV2MonitoringApp.ViewModels.Pages
                     Effect = null,
 
                     // 다이얼로그 크기 설정
-                    MinWidth = 380,
-                    MinHeight = 300,
-                    MaxWidth = 500,
-                    MaxHeight = 600,
+                    //MinWidth = 380,
+                    //MinHeight = 300,
+                    //MaxWidth = 500,
+                    //MaxHeight = 600,
 
                     // 컨텐츠 스타일 설정
                     //ContentMargin = new Thickness(0),

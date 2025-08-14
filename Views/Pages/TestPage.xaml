@@ -85,6 +85,7 @@
                     HorizontalAlignment="Right"
                     VerticalAlignment="Center"
                     Icon="{ui:SymbolIcon add28}"
+                    Command="{Binding ViewModel.ShowAddDeviceDialogCommand}"
                     />
                 <ui:Button
                     Icon="{ui:SymbolIcon Info28}"
@@ -116,11 +117,7 @@
                     VerticalContentAlignment="Stretch"
                     Width="Auto"
                     Height="Auto">
-                    <Grid>
-                        <Image Source="/Assets/DeviceImages/PSTAR-V2-5-H.png"
-                           Stretch="Uniform" 
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center"/>
+                    <Grid x:Name="DevicePanelCard1">
                     </Grid>
                 </ui:Card>
             </Border>
@@ -135,11 +132,11 @@
                     VerticalContentAlignment="Stretch"
                     Width="Auto"
                     Height="Auto">
-                    <Grid>
-                        <Image Source="/Assets/DeviceImages/PSTAR-V2-5-H.png"
+                    <Grid x:Name="DevicePanelCard2">
+                        <!--<Image Source="/Assets/DeviceImages/PSTAR-V2-5-H.png"
                            Stretch="Uniform" 
                            HorizontalAlignment="Center"
-                           VerticalAlignment="Center"/>         
+                           VerticalAlignment="Center"/>-->         
                     </Grid>
                 </ui:Card>
             </Border>
@@ -154,8 +151,7 @@
                     VerticalContentAlignment="Stretch"
                     Width="Auto"
                     Height="Auto">
-                    <Grid>
-                        <Controls:PSTARDevicePanel/>
+                    <Grid x:Name="DevicePanelCard3">
                     </Grid>
                 </ui:Card>
             </Border>

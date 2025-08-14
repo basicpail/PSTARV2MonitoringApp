@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             d:DataContext="{d:DesignInstance local:PSTARDevicePanel, IsDesignTimeCreatable=True}"
              xmlns:local="clr-namespace:PSTARV2MonitoringApp.Views.Controls"
              mc:Ignorable="d" 
              d:DesignHeight="800" d:DesignWidth="450">
@@ -49,15 +50,19 @@
             <Setter Property="Margin" Value="2"/>
             <Setter Property="SnapsToDevicePixels" Value="True"/>
         </Style>
-
+        
+        <!-- SOURCE 흰색, ABNORMAL 적색, RUN 녹색, STOP 적색, HEATING 주황색, COM FAILURE 적색
+        LOW PRESSURE 노란색, STANDBY 노랜색, HEAT ON 버튼 흰색, HEAT ON 흰색, MODE 버튼 흰색
+        MANUAL MODE 흰색, STANDBY MODE 흰색, START 버튼 녹색, STOP/RESET 버튼 적색
+        -->
         <Style x:Key="StatusLamp" TargetType="Ellipse">
-            <Setter Property="Width" Value="32"/>
-            <Setter Property="Height" Value="32"/>
-            <Setter Property="Fill" Value="White" />
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Fill" Value="Gray" />
             <Setter Property="Stroke" Value="#121212" />
-            <Setter Property="StrokeThickness" Value="4" />
+            <Setter Property="StrokeThickness" Value="2" />
             <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="Margin" Value="4,0,0,0" />
+            <Setter Property="Margin" Value="2,0,4,0" />
         </Style>
 
         <!-- 흰색 테두리 버튼(HEAT / MODE) -->
@@ -132,7 +137,7 @@
                                     <ColumnDefinition Width="40"/>
                                     <ColumnDefinition/>
                                 </Grid.ColumnDefinitions>
-                                <Ellipse Style="{StaticResource StatusLamp}"/>
+                                <Ellipse x:Name="SourceLamp" Style="{StaticResource StatusLamp}"/>
                                 <TextBlock Grid.Column="1" Text="SOURCE" Style="{StaticResource BadgeText}"/>
                             </Grid>
                         </Border>
@@ -143,7 +148,7 @@
                                     <ColumnDefinition Width="40"/>
                                     <ColumnDefinition/>
                                 </Grid.ColumnDefinitions>
-                                <Ellipse Style="{StaticResource StatusLamp}"/>
+                                <Ellipse x:Name="AbnormalLamp" Style="{StaticResource StatusLamp}"/>
                                 <TextBlock Grid.Column="1" Text="ABNORMAL" Style="{StaticResource BadgeText}"/>
                             </Grid>
                         </Border>
@@ -154,7 +159,7 @@
                                     <ColumnDefinition Width="40"/>
                                     <ColumnDefinition/>
                                 </Grid.ColumnDefinitions>
-                                <Ellipse Style="{StaticResource StatusLamp}"/>
+                                <Ellipse x:Name="RunLamp" Style="{StaticResource StatusLamp}"/>
                                 <TextBlock Grid.Column="1" Text="RUN" Style="{StaticResource BadgeText}"/>
                             </Grid>
                         </Border>
@@ -165,7 +170,7 @@
                                     <ColumnDefinition Width="40"/>
                                     <ColumnDefinition/>
                                 </Grid.ColumnDefinitions>
-                                <Ellipse Style="{StaticResource StatusLamp}"/>
+                                <Ellipse x:Name="StopLamp" Style="{StaticResource StatusLamp}"/>
                                 <TextBlock Grid.Column="1" Text="STOP" Style="{StaticResource BadgeText}"/>
                             </Grid>
                         </Border>
@@ -176,7 +181,7 @@
                                     <ColumnDefinition Width="40"/>
                                     <ColumnDefinition/>
                                 </Grid.ColumnDefinitions>
-                                <Ellipse Style="{StaticResource StatusLamp}"/>
+                                <Ellipse x:Name="HeatingLamp" Style="{StaticResource StatusLamp}"/>
                                 <TextBlock Grid.Column="1" Text="HEATING" Style="{StaticResource BadgeText}"/>
                             </Grid>
                         </Border>
@@ -191,7 +196,7 @@
                                     <ColumnDefinition Width="40"/>
                                     <ColumnDefinition/>
                                 </Grid.ColumnDefinitions>
-                                <Ellipse Style="{StaticResource StatusLamp}"/>
+                                <Ellipse x:Name="CommFailureLamp" Style="{StaticResource StatusLamp}"/>
                                 <TextBlock Grid.Column="1" Text="COM. FAILURE" Style="{StaticResource BadgeText}"/>
                             </Grid>
                         </Border>
@@ -202,7 +207,7 @@
                                     <ColumnDefinition Width="40"/>
                                     <ColumnDefinition/>
                                 </Grid.ColumnDefinitions>
-                                <Ellipse Style="{StaticResource StatusLamp}"/>
+                                <Ellipse x:Name="LowPressureLamp" Style="{StaticResource StatusLamp}"/>
                                 <TextBlock Grid.Column="1" Text="LOW PRESSURE" Style="{StaticResource BadgeText}"/>
                             </Grid>
                         </Border>
@@ -215,7 +220,7 @@
                                     <ColumnDefinition Width="40"/>
                                     <ColumnDefinition/>
                                 </Grid.ColumnDefinitions>
-                                <Ellipse Style="{StaticResource StatusLamp}"/>
+                                <Ellipse x:Name="StandbyLamp" Style="{StaticResource StatusLamp}"/>
                                 <TextBlock Grid.Column="1" Text="STANDBY" Style="{StaticResource BadgeText}"/>
                             </Grid>
                         </Border>
@@ -246,7 +251,7 @@
 
                                 <!-- ON 램프 -->
                                 <StackPanel Orientation="Horizontal" Margin="-10,0">
-                                    <Ellipse Style="{StaticResource StatusLamp}"/>
+                                    <Ellipse x:Name="OnLamp" Style="{StaticResource StatusLamp}"/>
                                     <TextBlock Text="ON" Style="{StaticResource BadgeText}"/>
                                 </StackPanel>
 
@@ -254,7 +259,8 @@
                                 <Border Grid.Column="1" Style="{StaticResource HollowSquareButton}" HorizontalAlignment="Right">
                                     <Grid>
                                         <Border CornerRadius="12" BorderBrush="#0B0B0B" BorderThickness="3.5" Margin="5"/>
-                                        <Button Content="HEAT" Foreground="Black" BorderThickness="0" Background="Transparent" FontFamily="Segoe UI Black" FontSize="18" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" />
+                                        <Button Content="HEAT" Foreground="Black" BorderThickness="0" Background="Transparent" FontFamily="Segoe UI Black" FontSize="18" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" 
+                                                Command="{Binding ViewModel.ToggleHeatCommand }"/>
                                     </Grid>
                                 </Border>
                             </Grid>
@@ -270,11 +276,11 @@
 
                                 <StackPanel  VerticalAlignment="Center" Margin="-10,0">
                                     <StackPanel Orientation="Horizontal" >
-                                        <Ellipse Style="{StaticResource StatusLamp}"/>
+                                        <Ellipse x:Name="ManualLamp" Style="{StaticResource StatusLamp}"/>
                                         <TextBlock Text="MANUAL" Style="{StaticResource BadgeText}"/>
                                     </StackPanel>
                                     <StackPanel Orientation="Horizontal" >
-                                        <Ellipse Style="{StaticResource StatusLamp}"/>
+                                        <Ellipse x:Name="StbyLamp" Style="{StaticResource StatusLamp}"/>
                                         <TextBlock Text="ST'BY" Style="{StaticResource BadgeText}"/>
                                     </StackPanel>
                                 </StackPanel>
@@ -283,7 +289,8 @@
                                 <Border Grid.Column="1" Style="{StaticResource HollowSquareButton}" HorizontalAlignment="Right">
                                     <Grid>
                                         <Border CornerRadius="12" BorderBrush="#0B0B0B" BorderThickness="3.5" Margin="5"/>
-                                        <Button Content="MODE" Foreground="Black" BorderThickness="0" Background="Transparent" FontFamily="Segoe UI Black" FontSize="18" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" />
+                                        <Button Content="MODE" Foreground="Black" BorderThickness="0" Background="Transparent" FontFamily="Segoe UI Black" FontSize="18" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+                                                Command="{Binding ViewModel.ToggleModeCommand}"/>
                                     </Grid>
                                 </Border>
                             </Grid>
@@ -312,7 +319,7 @@
                                 <Grid>
                                     <Border CornerRadius="12" BorderBrush="#0B0B0B" BorderThickness="3.5" Margin="5"/>
                                     <Button Content="START" Foreground="White" BorderThickness="0" Background="Transparent" FontFamily="Segoe UI Black" FontSize="18" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Margin="5"
-                                            Click=""/>
+                                     Command="{Binding ViewModel.StartCommand}"/>
                                 </Grid>
                             </Border>
 
@@ -323,7 +330,8 @@
                                 <Grid>
                                     <Border CornerRadius="12" BorderBrush="#0B0B0B" BorderThickness="3.5" Margin="5"/>
                                     <StackPanel VerticalAlignment="Center">
-                                        <Button Foreground="White" BorderThickness="0" Background="Transparent" FontFamily="Segoe UI Black" FontSize="18" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Margin="5">
+                                        <Button Foreground="White" BorderThickness="0" Background="Transparent" FontFamily="Segoe UI Black" FontSize="18" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Margin="5"
+                                                Command="{Binding ViewModel.StopCommand}">
                                             <StackPanel>
                                                 <TextBlock Text="STOP" HorizontalAlignment="Center"/>
                                                 <TextBlock Text="RESET" HorizontalAlignment="Center"/>
