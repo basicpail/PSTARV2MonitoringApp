@@ -88,6 +88,13 @@
                     Command="{Binding ViewModel.ShowAddDeviceDialogCommand}"
                     />
                 <ui:Button
+                    Content="Clear Logs"
+                    Padding="8,4"
+                    CornerRadius="5"
+                    Icon="{ui:SymbolIcon Delete28}"
+                    Command="{Binding ViewModel.ClearLogsCommand}"
+                    />
+                <ui:Button
                     Icon="{ui:SymbolIcon Info28}"
                     Content="Error"
                     Margin="8,0,8,0"
@@ -157,7 +164,9 @@
             </Border>
 
             <Grid Grid.Column="3" Margin="0,0,0,0">
-                <DataGrid
+                <!-- DataGrid -->
+                <DataGrid Grid.Row="1"
+                    ItemsSource="{Binding ViewModel.DeviceLogs}"
                     AutoGenerateColumns="False"
                     ColumnHeaderStyle="{StaticResource GridHeaderStyle}"
                     CellStyle="{StaticResource GridCellStyle}"
@@ -172,28 +181,10 @@
                     BorderThickness="1"
                     Background="#000000">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="Date"     Binding="{Binding Date, StringFormat=HH:mm:ss}" Width ="2*" MinWidth="100"/>
-                        <DataGridTextColumn Header="ID"       Binding="{Binding Id}"                          Width="*" MinWidth="50"/>
-                        <DataGridTextColumn Header="Contents" Binding="{Binding Contents}"                    Width="8*"/>
+                        <DataGridTextColumn Header="Time"     Binding="{Binding Date, StringFormat=HH:mm:ss}" Width ="2*" MinWidth="80"/>
+                        <DataGridTextColumn Header="ID"       Binding="{Binding Id}"                          Width="*" MinWidth="60"/>
+                        <DataGridTextColumn Header="Action" Binding="{Binding Contents}"                    Width="6*"/>
                     </DataGrid.Columns>
-                    <!--<DataGrid.Template>
-                        <ControlTemplate TargetType="DataGrid">
-                            <Border BorderBrush="{TemplateBinding BorderBrush}" 
-                                    BorderThickness="{TemplateBinding BorderThickness}" 
-                                    Background="{TemplateBinding Background}">
-                                <Grid>
-                                    <ScrollViewer x:Name="DG_ScrollViewer" Focusable="false">
-                                        <ItemsPresenter x:Name="ItemsPresenter" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
-                                    </ScrollViewer>
-                                    <TextBlock Text="No Data" 
-                                               Foreground="#F3F3F3" 
-                                               HorizontalAlignment="Center" 
-                                               VerticalAlignment="Center" 
-                                               Visibility="Visible"/>
-                                </Grid>
-                            </Border>
-                        </ControlTemplate>
-                    </DataGrid.Template>-->
                 </DataGrid>
             </Grid>
         </Grid>

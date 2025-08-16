@@ -9,7 +9,6 @@
              d:DesignHeight="800" d:DesignWidth="450">
 
     <UserControl.Resources>
-
         <!-- 팔레트 -->
         <!-- Color를 직접 정의-->
         <Color x:Key="ClrBgDeepGreenColor">#0F2C23</Color>
@@ -50,11 +49,8 @@
             <Setter Property="Margin" Value="2"/>
             <Setter Property="SnapsToDevicePixels" Value="True"/>
         </Style>
-        
-        <!-- SOURCE 흰색, ABNORMAL 적색, RUN 녹색, STOP 적색, HEATING 주황색, COM FAILURE 적색
-        LOW PRESSURE 노란색, STANDBY 노랜색, HEAT ON 버튼 흰색, HEAT ON 흰색, MODE 버튼 흰색
-        MANUAL MODE 흰색, STANDBY MODE 흰색, START 버튼 녹색, STOP/RESET 버튼 적색
-        -->
+
+        <!-- STATUS LAMP -->
         <Style x:Key="StatusLamp" TargetType="Ellipse">
             <Setter Property="Width" Value="30"/>
             <Setter Property="Height" Value="30"/>
@@ -65,6 +61,122 @@
             <Setter Property="Margin" Value="2,0,4,0" />
         </Style>
 
+        <!-- 향상된 버튼 스타일 -->
+        <Style x:Key="EnhancedButton" TargetType="Button">
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="FontFamily" Value="Segoe UI Black"/>
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="VerticalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+            <Setter Property="RenderTransform">
+                <Setter.Value>
+                    <ScaleTransform ScaleX="1" ScaleY="1"/>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBorder" 
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="12">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"
+                                            Content="{TemplateBinding Content}"
+                                            ContentTemplate="{TemplateBinding ContentTemplate}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <!-- 마우스 오버 효과 -->
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background">
+                                    <Setter.Value>
+                                        <SolidColorBrush Color="#FFFFFF" Opacity="0.1"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <!-- 버튼 눌림 효과 -->
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background">
+                                    <Setter.Value>
+                                        <SolidColorBrush Color="#FFFFFF" Opacity="0.2"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <!-- 애니메이션 효과 -->
+            <Style.Triggers>
+                <EventTrigger RoutedEvent="MouseEnter">
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX" 
+                                           To="1.05" Duration="0:0:0.1"/>
+                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY" 
+                                           To="1.05" Duration="0:0:0.1"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+                <EventTrigger RoutedEvent="MouseLeave">
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX" 
+                                           To="1.0" Duration="0:0:0.1"/>
+                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY" 
+                                           To="1.0" Duration="0:0:0.1"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- LP TEST 버튼 특별 스타일 -->
+        <Style x:Key="LPTestButton" TargetType="Border">
+            <Setter Property="Width" Value="60"/>
+            <Setter Property="Height" Value="60"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Background" Value="{StaticResource ClrGreyKey}"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="Margin" Value="0,20,25,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+            <Setter Property="RenderTransform">
+                <Setter.Value>
+                    <ScaleTransform ScaleX="1" ScaleY="1"/>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <!-- 마우스 오버 효과 -->
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#B5BDC4"/>
+                </Trigger>
+                <!-- 애니메이션 트리거 -->
+                <EventTrigger RoutedEvent="MouseEnter">
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX" 
+                                           To="1.1" Duration="0:0:0.1"/>
+                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY" 
+                                           To="1.1" Duration="0:0:0.1"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+                <EventTrigger RoutedEvent="MouseLeave">
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX" 
+                                           To="1.0" Duration="0:0:0.1"/>
+                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY" 
+                                           To="1.0" Duration="0:0:0.1"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+            </Style.Triggers>
+        </Style>
+
         <!-- 흰색 테두리 버튼(HEAT / MODE) -->
         <Style x:Key="HollowSquareButton" TargetType="Border">
             <Setter Property="Width" Value="80"/>
@@ -73,6 +185,39 @@
             <Setter Property="Background" Value="#FFFFFF"/>
             <Setter Property="BorderBrush" Value="#FFFFFFFF"/>
             <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+            <Setter Property="RenderTransform">
+                <Setter.Value>
+                    <ScaleTransform ScaleX="1" ScaleY="1"/>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <!-- 마우스 오버 효과 -->
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#F0F0F0"/>
+                </Trigger>
+                <!-- 애니메이션 트리거 -->
+                <EventTrigger RoutedEvent="MouseEnter">
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX" 
+                                           To="1.05" Duration="0:0:0.1"/>
+                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY" 
+                                           To="1.05" Duration="0:0:0.1"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+                <EventTrigger RoutedEvent="MouseLeave">
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX" 
+                                           To="1.0" Duration="0:0:0.1"/>
+                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY" 
+                                           To="1.0" Duration="0:0:0.1"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+            </Style.Triggers>
         </Style>
 
         <!-- Start/Stop 대형 컬러 버튼 -->
@@ -82,6 +227,38 @@
             <Setter Property="Width" Value="80"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+            <Setter Property="RenderTransform">
+                <Setter.Value>
+                    <ScaleTransform ScaleX="1" ScaleY="1"/>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <!-- 마우스 오버 효과 -->
+                <Trigger Property="IsMouseOver" Value="True">
+                </Trigger>
+                <!-- 애니메이션 트리거 -->
+                <EventTrigger RoutedEvent="MouseEnter">
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX" 
+                                           To="1.05" Duration="0:0:0.1"/>
+                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY" 
+                                           To="1.05" Duration="0:0:0.1"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+                <EventTrigger RoutedEvent="MouseLeave">
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX" 
+                                           To="1.0" Duration="0:0:0.1"/>
+                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY" 
+                                           To="1.0" Duration="0:0:0.1"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+            </Style.Triggers>
         </Style>
 
         <!-- 검은 패널(좌측 2개, 우측 1개) -->
@@ -93,8 +270,8 @@
         </Style>
     </UserControl.Resources>
 
-    <!-- 고정 해상도 캔버스 (원본 이미지 비율과 동일하게 배치) -->
-    <Grid Margin="0">
+    <!-- 유연한 크기 조정이 가능한 컨테이너 -->
+    <Viewbox Stretch="Uniform" StretchDirection="DownOnly">
         <Border Width="420" Height="730" Background="{StaticResource ClrBgDeepGreen}">
             <Grid Margin="18">
                 <Grid.RowDefinitions>
@@ -259,8 +436,8 @@
                                 <Border Grid.Column="1" Style="{StaticResource HollowSquareButton}" HorizontalAlignment="Right">
                                     <Grid>
                                         <Border CornerRadius="12" BorderBrush="#0B0B0B" BorderThickness="3.5" Margin="5"/>
-                                        <Button Content="HEAT" Foreground="Black" BorderThickness="0" Background="Transparent" FontFamily="Segoe UI Black" FontSize="18" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" 
-                                                Command="{Binding ViewModel.ToggleHeatCommand }"/>
+                                        <Button Content="HEAT" Foreground="Black" Style="{StaticResource EnhancedButton}"
+                                                Command="{Binding ViewModel.ToggleHeatCommand}"/>
                                     </Grid>
                                 </Border>
                             </Grid>
@@ -289,21 +466,21 @@
                                 <Border Grid.Column="1" Style="{StaticResource HollowSquareButton}" HorizontalAlignment="Right">
                                     <Grid>
                                         <Border CornerRadius="12" BorderBrush="#0B0B0B" BorderThickness="3.5" Margin="5"/>
-                                        <Button Content="MODE" Foreground="Black" BorderThickness="0" Background="Transparent" FontFamily="Segoe UI Black" FontSize="18" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+                                        <Button Content="MODE" Foreground="Black" Style="{StaticResource EnhancedButton}"
                                                 Command="{Binding ViewModel.ToggleModeCommand}"/>
                                     </Grid>
                                 </Border>
                             </Grid>
                         </Border>
 
-                        <!-- LP TEST (중앙 아래) -->
-                        <Border Width="60" Height="60" CornerRadius="8"
-                                Background="{StaticResource ClrGreyKey}" HorizontalAlignment="Right" Margin="0,20,25,0">
-                            <Grid>
-                                <TextBlock Text="LP&#10;TEST" TextAlignment="Center"
-                                           VerticalAlignment="Center" Foreground="#212121"
-                                           FontFamily="Segoe UI Black" FontSize="16"/>
-                            </Grid>
+                        <!-- LP TEST (중앙 아래) - 향상된 버튼 효과와 lamp 제어 -->
+                        <Border x:Name="LPTestBorder" Style="{StaticResource LPTestButton}">
+                            <Button Content="LP&#10;TEST" 
+                                Foreground="#212121"
+                                FontFamily="Segoe UI Black" 
+                                FontSize="16"
+                                Style="{StaticResource EnhancedButton}"
+                                />
                         </Border>
                     </StackPanel>
 
@@ -314,11 +491,10 @@
                             <Border Style="{StaticResource FatColorButton}"
                                     Background="{StaticResource ClrStartGreen}"
                                     BorderBrush="#0D7F33"
-                                    Margin="0,0,0,50"
-                                    >
+                                    Margin="0,0,0,50">
                                 <Grid>
                                     <Border CornerRadius="12" BorderBrush="#0B0B0B" BorderThickness="3.5" Margin="5"/>
-                                    <Button Content="START" Foreground="White" BorderThickness="0" Background="Transparent" FontFamily="Segoe UI Black" FontSize="18" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Margin="5"
+                                    <Button Content="START" Foreground="White" Style="{StaticResource EnhancedButton}"
                                      Command="{Binding ViewModel.StartCommand}"/>
                                 </Grid>
                             </Border>
@@ -329,15 +505,14 @@
                                     BorderBrush="#9D1E1E">
                                 <Grid>
                                     <Border CornerRadius="12" BorderBrush="#0B0B0B" BorderThickness="3.5" Margin="5"/>
-                                    <StackPanel VerticalAlignment="Center">
-                                        <Button Foreground="White" BorderThickness="0" Background="Transparent" FontFamily="Segoe UI Black" FontSize="18" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Margin="5"
-                                                Command="{Binding ViewModel.StopCommand}">
-                                            <StackPanel>
-                                                <TextBlock Text="STOP" HorizontalAlignment="Center"/>
-                                                <TextBlock Text="RESET" HorizontalAlignment="Center"/>
-                                            </StackPanel>
-                                        </Button>
-                                    </StackPanel>
+                                    <Button Foreground="White" Style="{StaticResource EnhancedButton}"
+                                        Command="{Binding ViewModel.StopCommand}">
+                                        <StackPanel>
+                                            <TextBlock Text="STOP" HorizontalAlignment="Center"/>
+                                            <Border Height="2" Background= "Black" HorizontalAlignment="Stretch"/>
+                                            <TextBlock Text="RESET" HorizontalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
                                 </Grid>
                             </Border>
                         </StackPanel>
@@ -345,5 +520,5 @@
                 </Grid>
             </Grid>
         </Border>
-    </Grid>
+    </Viewbox>
 </UserControl>

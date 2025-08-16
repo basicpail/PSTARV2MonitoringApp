@@ -1,0 +1,70 @@
+<UserControl x:Class="PSTARV2MonitoringApp.Views.Dialogs.CANSettingsDialog"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             mc:Ignorable="d" 
+             d:DesignHeight="300" d:DesignWidth="400">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="20"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="20"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="20"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="20"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- 인터페이스 타입 -->
+        <StackPanel Grid.Row="0">
+            <TextBlock Text="인터페이스 타입:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+            <ComboBox x:Name="InterfaceTypeComboBox" Height="35">
+                <ComboBoxItem Content="TEST (시뮬레이션)" Tag="TEST"/>
+                <ComboBoxItem Content="PCAN" Tag="PCAN"/>
+                <ComboBoxItem Content="Vector" Tag="VECTOR"/>
+                <ComboBoxItem Content="SocketCAN" Tag="SOCKETCAN"/>
+            </ComboBox>
+        </StackPanel>
+        
+        <!-- 채널 -->
+        <StackPanel Grid.Row="2">
+            <TextBlock Text="채널:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+            <ComboBox x:Name="ChannelComboBox" Height="35">
+                <ComboBoxItem Content="Virtual (가상)" Tag="Virtual"/>
+                <ComboBoxItem Content="PCAN_USBBUS1" Tag="PCAN_USBBUS1"/>
+                <ComboBoxItem Content="PCAN_USBBUS2" Tag="PCAN_USBBUS2"/>
+                <ComboBoxItem Content="can0" Tag="can0"/>
+                <ComboBoxItem Content="can1" Tag="can1"/>
+            </ComboBox>
+        </StackPanel>
+        
+        <!-- 전송 속도 -->
+        <StackPanel Grid.Row="4">
+            <TextBlock Text="전송 속도 (bps):" FontWeight="SemiBold" Margin="0,0,0,5"/>
+            <ComboBox x:Name="BaudRateComboBox" Height="35">
+                <ComboBoxItem Content="125K" Tag="125000"/>
+                <ComboBoxItem Content="250K" Tag="250000"/>
+                <ComboBoxItem Content="500K" Tag="500000"/>
+                <ComboBoxItem Content="1M" Tag="1000000"/>
+            </ComboBox>
+        </StackPanel>
+        
+        <!-- 기본 CAN ID -->
+        <StackPanel Grid.Row="6">
+            <TextBlock Text="기본 CAN ID (16진수):" FontWeight="SemiBold" Margin="0,0,0,5"/>
+            <TextBox x:Name="BaseIdTextBox" Height="35" Text="100" 
+                     VerticalContentAlignment="Center"/>
+        </StackPanel>
+        
+        <!-- 현재 상태 -->
+        <StackPanel Grid.Row="8">
+            <TextBlock Text="현재 상태:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+            <TextBlock x:Name="StatusTextBlock" Text="연결 안됨" 
+                       Foreground="#E23B3B" FontWeight="SemiBold"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

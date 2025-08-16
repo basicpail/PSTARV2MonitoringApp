@@ -36,9 +36,6 @@
                   BorderBrush="#646464"
                   BorderThickness="1"
                   SelectedIndex="0">
-            <ComboBoxItem Content="ID 1" />
-            <ComboBoxItem Content="ID 2" />
-            <ComboBoxItem Content="ID 3" />
         </ComboBox>
 
         <ComboBox x:Name="DeviceTypeComboBox"
@@ -54,12 +51,6 @@
             BorderBrush="#646464"
             BorderThickness="1"
             SelectedIndex="1">
-            <ComboBoxItem Content="PSTAR-V2-5" />
-            <ComboBoxItem Content="PSTAR-V2-5H" />
-            <ComboBoxItem Content="PSTAR-V2-5-S" />
-            <ComboBoxItem Content="PSTAR-V2-5H-S" />
-            <ComboBoxItem Content="PSTAR-V2-5-R" />
-            <ComboBoxItem Content="PSTAR-V2-5H-R" />
         </ComboBox>
     </Grid>
 </UserControl>

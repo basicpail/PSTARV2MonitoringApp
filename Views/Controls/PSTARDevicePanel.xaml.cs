@@ -22,11 +22,7 @@ namespace PSTARV2MonitoringApp.Views.Controls
     /// </summary>
     public partial class PSTARDevicePanel : UserControl
     {
-        // 이 패널에 표시할 장치 모델
-        private PSTARDevicePanelModel _deviceModel;
-
         // 램프 색상 정의
-        //private static readonly SolidColorBrush OrangeBrush = new SolidColorBrush(Color.FromRgb(0xF0, 0x78, 0x3C));
         private static readonly SolidColorBrush GreenBrush = new SolidColorBrush(Colors.Green);
         private static readonly SolidColorBrush RedBrush = new SolidColorBrush(Colors.Red);
         private static readonly SolidColorBrush YellowBrush = new SolidColorBrush(Colors.Yellow);
@@ -34,33 +30,34 @@ namespace PSTARV2MonitoringApp.Views.Controls
         private static readonly SolidColorBrush OffBrush = new SolidColorBrush(Colors.Gray);
         private static readonly SolidColorBrush WhiteBrush = new SolidColorBrush(Colors.White);
 
+        // 각 패널마다 독립적인 ViewModel 인스턴스
         public PSTARDevicePanelViewModel ViewModel { get; private set; }
 
-        public PSTARDevicePanel()
+        // 특정 장치 ID로 초기화하는 생성자 (권장)
+        public PSTARDevicePanel(string deviceId)
         {
+            ViewModel = new PSTARDevicePanelViewModel(deviceId);
+            DataContext = this;
             InitializeComponent();
         }
 
-        // ViewModel을 받는 생성자
-        public PSTARDevicePanel(PSTARDevicePanelViewModel viewModel)
+        // 기본 생성자
+        public PSTARDevicePanel()
         {
-            ViewModel = viewModel;
+            ViewModel = new PSTARDevicePanelViewModel();
+            DataContext = this;
             InitializeComponent();
-            DataContext = ViewModel; // ViewModel을 DataContext로 설정
         }
 
         public void SetDeviceModel(PSTARDevicePanelModel deviceModel)
         {
-            if (ViewModel != null)
-            {
-                // 현재 ViewModel이 있으면 해당 장치 ID를 현재 활성화 ID로 설정
-                ViewModel.CurrentDeviceId = deviceModel.DeviceId;
-            }
+            if (deviceModel == null) return;
 
-            _deviceModel = deviceModel;
+            // ViewModel에 장치 모델 설정
+            ViewModel.SetDeviceModel(deviceModel);
 
             // 모델 데이터 변경 이벤트 구독
-            _deviceModel.PropertyChanged += DeviceModel_PropertyChanged;
+            deviceModel.PropertyChanged += DeviceModel_PropertyChanged;
 
             // 램프 상태 초기 업데이트
             UpdateAllLamps();
@@ -68,41 +65,48 @@ namespace PSTARV2MonitoringApp.Views.Controls
 
         private void DeviceModel_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            // 모델 속성이 변경되면 해당 램프만 업데이트
-            switch (e.PropertyName)
+            // UI 스레드에서 실행되도록 보장
+            Dispatcher.Invoke(() =>
             {
-                case nameof(PSTARDevicePanelModel.IsSourceOn):
-                    UpdateLamp(SourceLamp, _deviceModel.IsSourceOn ? WhiteBrush : OffBrush);
-                    break;
-                case nameof(PSTARDevicePanelModel.IsAbnormal):
-                    UpdateLamp(AbnormalLamp, _deviceModel.IsAbnormal ? RedBrush : OffBrush);
-                    break;
-                case nameof(PSTARDevicePanelModel.IsRunning):
-                    UpdateLamp(RunLamp, _deviceModel.IsRunning ? GreenBrush : OffBrush);
-                    break;
-                case nameof(PSTARDevicePanelModel.IsStopped):
-                    UpdateLamp(StopLamp, _deviceModel.IsStopped ? RedBrush : OffBrush);
-                    break;
-                case nameof(PSTARDevicePanelModel.IsHeating):
-                    UpdateLamp(HeatingLamp, _deviceModel.IsHeating ? OrangeBrush : OffBrush);
-                    break;
-                case nameof(PSTARDevicePanelModel.IsCommFailure):
-                    UpdateLamp(CommFailureLamp, _deviceModel.IsCommFailure ? RedBrush : OffBrush);
-                    break;
-                case nameof(PSTARDevicePanelModel.IsLowPressure):
-                    UpdateLamp(LowPressureLamp, _deviceModel.IsLowPressure ? YellowBrush : OffBrush);
-                    break;
-                case nameof(PSTARDevicePanelModel.IsStandby):
-                    UpdateLamp(StandbyLamp, _deviceModel.IsStandby ? YellowBrush : OffBrush);
-                    UpdateLamp(StbyLamp, _deviceModel.IsStandby ? WhiteBrush : OffBrush);
-                    break;
-                case nameof(PSTARDevicePanelModel.IsOn):
-                    UpdateLamp(OnLamp, _deviceModel.IsOn ? WhiteBrush : OffBrush);
-                    break;
-                case nameof(PSTARDevicePanelModel.IsManualMode):
-                    UpdateLamp(ManualLamp, _deviceModel.IsManualMode ? WhiteBrush : OffBrush);
-                    break;
-            }
+                var deviceModel = sender as PSTARDevicePanelModel;
+                if (deviceModel == null) return;
+
+                // 모델 속성이 변경되면 해당 램프만 업데이트
+                switch (e.PropertyName)
+                {
+                    case nameof(PSTARDevicePanelModel.IsSourceOn):
+                        UpdateLamp(SourceLamp, deviceModel.IsSourceOn ? WhiteBrush : OffBrush);
+                        break;
+                    case nameof(PSTARDevicePanelModel.IsAbnormal):
+                        UpdateLamp(AbnormalLamp, deviceModel.IsAbnormal ? RedBrush : OffBrush);
+                        break;
+                    case nameof(PSTARDevicePanelModel.IsRunning):
+                        UpdateLamp(RunLamp, deviceModel.IsRunning ? GreenBrush : OffBrush);
+                        break;
+                    case nameof(PSTARDevicePanelModel.IsStopped):
+                        UpdateLamp(StopLamp, deviceModel.IsStopped ? RedBrush : OffBrush);
+                        break;
+                    case nameof(PSTARDevicePanelModel.IsHeating):
+                        UpdateLamp(HeatingLamp, deviceModel.IsHeating ? OrangeBrush : OffBrush);
+                        break;
+                    case nameof(PSTARDevicePanelModel.IsCommFailure):
+                        UpdateLamp(CommFailureLamp, deviceModel.IsCommFailure ? RedBrush : OffBrush);
+                        break;
+                    case nameof(PSTARDevicePanelModel.IsLowPressure):
+                        UpdateLamp(LowPressureLamp, deviceModel.IsLowPressure ? YellowBrush : OffBrush);
+                        break;
+                    case nameof(PSTARDevicePanelModel.IsStandby):
+                        UpdateLamp(StandbyLamp, deviceModel.IsStandby ? YellowBrush : OffBrush);
+                        UpdateLamp(StbyLamp, deviceModel.IsStandby ? WhiteBrush : OffBrush);
+                        break;
+                    case nameof(PSTARDevicePanelModel.IsOn):
+                        UpdateLamp(OnLamp, deviceModel.IsOn ? WhiteBrush : OffBrush);
+                        break;
+                    case nameof(PSTARDevicePanelModel.IsManualMode):
+                        UpdateLamp(ManualLamp, deviceModel.IsManualMode ? WhiteBrush : OffBrush);
+                        break;
+                }
+            });
         }
 
         private void UpdateLamp(Ellipse lamp, SolidColorBrush brush)
@@ -115,20 +119,38 @@ namespace PSTARV2MonitoringApp.Views.Controls
 
         private void UpdateAllLamps()
         {
-            if (_deviceModel == null) return;
+            var deviceModel = ViewModel?.DeviceModel;
+            if (deviceModel == null) return;
 
             // 모든 램프 상태 업데이트
-            UpdateLamp(SourceLamp, _deviceModel.IsSourceOn ? WhiteBrush : OffBrush);
-            UpdateLamp(AbnormalLamp, _deviceModel.IsAbnormal ? RedBrush : OffBrush);
-            UpdateLamp(RunLamp, _deviceModel.IsRunning ? GreenBrush : OffBrush);
-            UpdateLamp(StopLamp, _deviceModel.IsStopped ? RedBrush : OffBrush);
-            UpdateLamp(HeatingLamp, _deviceModel.IsHeating ? OrangeBrush : OffBrush);
-            UpdateLamp(CommFailureLamp, _deviceModel.IsCommFailure ? RedBrush : OffBrush);
-            UpdateLamp(LowPressureLamp, _deviceModel.IsLowPressure ? YellowBrush : OffBrush);
-            UpdateLamp(StandbyLamp, _deviceModel.IsStandby ? YellowBrush : OffBrush);
-            UpdateLamp(OnLamp, _deviceModel.IsOn ? WhiteBrush : OffBrush);
-            UpdateLamp(ManualLamp, _deviceModel.IsManualMode ? WhiteBrush : OffBrush);
-            UpdateLamp(StbyLamp, _deviceModel.IsStandby ? WhiteBrush : OffBrush);
+            UpdateLamp(SourceLamp, deviceModel.IsSourceOn ? WhiteBrush : OffBrush);
+            UpdateLamp(AbnormalLamp, deviceModel.IsAbnormal ? RedBrush : OffBrush);
+            UpdateLamp(RunLamp, deviceModel.IsRunning ? GreenBrush : OffBrush);
+            UpdateLamp(StopLamp, deviceModel.IsStopped ? RedBrush : OffBrush);
+            UpdateLamp(HeatingLamp, deviceModel.IsHeating ? OrangeBrush : OffBrush);
+            UpdateLamp(CommFailureLamp, deviceModel.IsCommFailure ? RedBrush : OffBrush);
+            UpdateLamp(LowPressureLamp, deviceModel.IsLowPressure ? YellowBrush : OffBrush);
+            UpdateLamp(StandbyLamp, deviceModel.IsStandby ? YellowBrush : OffBrush);
+            UpdateLamp(OnLamp, deviceModel.IsOn ? WhiteBrush : OffBrush);
+            UpdateLamp(ManualLamp, deviceModel.IsManualMode ? WhiteBrush : OffBrush);
+            UpdateLamp(StbyLamp, deviceModel.IsStandby ? WhiteBrush : OffBrush);
+        }
+
+        // 이 패널의 장치 ID를 반환하는 메서드
+        public string GetDeviceId()
+        {
+            return ViewModel?.DeviceId;
+        }
+
+        // LP Test 관련 간단한 이벤트 핸들러들 (button에 Command 에 바인딩이 안돼서 이렇게 구현)
+        private void LPTestButton_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            ViewModel.EndLPTestCommand.Execute(null);
+        }
+
+        private void LPTestButton_MouseLeave(object sender, MouseEventArgs e)
+        {
+            ViewModel.EndLPTestCommand.Execute(null);
         }
     }
 }

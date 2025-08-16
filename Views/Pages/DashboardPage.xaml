@@ -22,7 +22,6 @@
     <Page.Resources>
         <!-- DataGrid 공통 헤더 스타일 -->
         <Style x:Key="GridHeaderStyle" TargetType="DataGridColumnHeader">
-            <!--<Setter Property="Background" Value="{DynamicResource SecondaryBackgroundBrush}"/>-->
             <Setter Property="Background" Value="#434343"/>
             <Setter Property="Foreground" Value="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -80,7 +79,7 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <!-- ▶ 종합 상황 정보 카드 -->
+            <!-- ▶ 종합 상황 정보 카드 (DeviceLogService 사용) -->
             <ui:Card
                 Grid.Column="0"
                 Background="#323232"
@@ -97,12 +96,13 @@
                     <!-- ① Header 영역 -->
                     <Grid Grid.Row="0" Margin="16,0,16,8">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="118*"/>
-                            <ColumnDefinition Width="23*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Grid.ColumnSpan="2">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <ui:SymbolIcon Symbol="Info28" FontSize="20" FontWeight="Bold" Margin="0,0,8,0" Foreground="#4F8EF7"/>
                             <TextBlock Text="종합 상황 정보"
                                 FontSize="20"
@@ -111,19 +111,49 @@
                                 VerticalAlignment="Center"/>
                         </StackPanel>
 
-                        <!-- 우측 필터 버튼 -->
-                        <ui:Button Grid.Column="2"
-                            Content="필터"
-                            Command="{Binding ViewModel.ShowIdFilterDialogCommand}"
+                        <!-- 테스트 로그 추가 버튼 -->
+                        <ui:Button Grid.Column="1"
+                            Content="Test Log"
+                            Margin="0,0,8,0"
+                            Padding="8,4"
+                            CornerRadius="5"
+                            Icon="{ui:SymbolIcon Play28}"
+                            Command="{Binding ViewModel.AddRandomLogCommand}"
                             Background="#212121"
                             Foreground="#F3F3F3"
-                            BorderBrush="#33334D"/>
+                            BorderBrush="#33334D"
+                            ToolTip="테스트용 랜덤 로그 추가"/>
+
+                        <!-- 로그 클리어 버튼 -->
+                        <ui:Button Grid.Column="2"
+                            Content="Clear"
+                            Margin="0,0,8,0"
+                            Padding="8,4"
+                            CornerRadius="5"
+                            Icon="{ui:SymbolIcon Delete28}"
+                            Command="{Binding ViewModel.ClearLogsCommand}"
+                            Background="#212121"
+                            Foreground="#F3F3F3"
+                            BorderBrush="#33334D"
+                            ToolTip="모든 로그 삭제"/>
+
+                        <!-- 필터 버튼 -->
+                        <ui:Button Grid.Column="3"
+                            Content="필터"
+                            Padding="8,4"
+                            CornerRadius="5"
+                            Icon="{ui:SymbolIcon Filter28}"
+                            Command="{Binding ViewModel.ShowLogFilterDialogCommand}"
+                            Background="#212121"
+                            Foreground="#F3F3F3"
+                            BorderBrush="#33334D"
+                            ToolTip="ID별 로그 필터링"/>
                     </Grid>
 
-                    <!-- ② Content 영역: Summary DataGrid -->
+                    <!-- ② Content 영역: DeviceLogService 통합 로그 DataGrid (필터링된 버전) -->
                     <DataGrid
                         Grid.Row="1"
-                        ItemsSource="{Binding ViewModel.TestSituationLogTestItems}"
+                        ItemsSource="{Binding ViewModel.FilteredDeviceLogs}"
                         ColumnHeaderStyle="{StaticResource GridHeaderStyle}"
                         CellStyle="{StaticResource GridCellStyle}"
                         RowStyle="{StaticResource NoCornerRadiusRowStyle}"
@@ -136,13 +166,52 @@
                         IsReadOnly="True"
                         BorderBrush="#000000"
                         Foreground="#000000"
-                        Background="#000000"
-                        >
+                        Background="#000000">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Date"     Binding="{Binding Date, StringFormat=HH:mm:ss}" Width ="6*" MinWidth="150"/>
-                            <DataGridTextColumn Header="ID"       Binding="{Binding Id}" Width="2*" MinWidth="50"/>
-                            <DataGridTextColumn Header="Contents" Binding="{Binding Contents}" Width="10*"/>
+                            <DataGridTextColumn Header="시간"     
+                                                Binding="{Binding Date, StringFormat=HH:mm:ss}" 
+                                                Width="6*" 
+                                                MinWidth="150"/>
+                            <DataGridTextColumn Header="장치 ID"       
+                                                Binding="{Binding Id}" 
+                                                Width="2*" 
+                                                MinWidth="50"/>
+                            <DataGridTextColumn Header="상황 정보" 
+                                                Binding="{Binding Contents}" 
+                                                Width="10*"/>
                         </DataGrid.Columns>
+
+                        <!-- 데이터가 없을 때 표시할 메시지 -->
+                        <DataGrid.Style>
+                            <Style TargetType="DataGrid">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ViewModel.FilteredDeviceLogs.Count}" Value="0">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="DataGrid">
+                                                    <Border BorderBrush="{TemplateBinding BorderBrush}" 
+                                                            BorderThickness="{TemplateBinding BorderThickness}" 
+                                                            Background="{TemplateBinding Background}">
+                                                        <Grid>
+                                                            <ScrollViewer x:Name="DG_ScrollViewer" Focusable="false">
+                                                                <ItemsPresenter x:Name="ItemsPresenter" 
+                                                                              SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                                            </ScrollViewer>
+                                                            <TextBlock Text="해당 조건의 상황 정보가 없습니다." 
+                                                                       Foreground="#F3F3F3" 
+                                                                       HorizontalAlignment="Center" 
+                                                                       VerticalAlignment="Center" 
+                                                                       FontSize="16"
+                                                                       Opacity="0.7"/>
+                                                        </Grid>
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.Style>
                     </DataGrid>
                 </Grid>
             </ui:Card>
@@ -171,7 +240,6 @@
 
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <ui:SymbolIcon Symbol="Info28" FontSize="20" FontWeight="Bold" Margin="0,0,8,0" Foreground="#4F8EF7"/>
-                            <!--<ui:InfoBadge Icon="Info28" Margin="0,0,8,0"/>-->
                             <TextBlock Text="Raw Data"
                                 FontSize="20"
                                 FontWeight="SemiBold"
@@ -179,19 +247,26 @@
                                 VerticalAlignment="Center"/>
                         </StackPanel>
 
-                        <!-- 출력 시작 버튼 -->
-                        <ui:Button Grid.Column="1"
-                            Content="출력 시작"
+                        <!-- CAN ID 필터 버튼 -->
+                        <ComboBox Grid.Column="1" 
                             Margin="8,0,4,0"
+                            Width="100"
+                            ItemsSource="{Binding ViewModel.AvailableCanIds}"
+                            SelectedItem="{Binding ViewModel.SelectedCanIdFilter, Mode=TwoWay}"
                             Background="#212121"
                             Foreground="#F3F3F3"
-                            BorderBrush="#33334D"/>
-                        <!-- 필터 버튼 -->
-                        <ui:Button Grid.Column="2"
-                            Content="필터"
+                            BorderBrush="#33334D"
+                            ToolTip="CAN ID 필터"/>
+                        
+                        <!-- 필터 토글 -->
+                        <ui:ToggleSwitch Grid.Column="2"
+                            Content="모든 데이터"
+                            Margin="4,0,0,0"
+                            IsChecked="{Binding ViewModel.ShowAllCanMessages, Mode=TwoWay}"
                             Background="#212121"
                             Foreground="#F3F3F3"
-                            BorderBrush="#33334D"/>
+                            BorderBrush="#33334D"
+                            ToolTip="모든 CAN 메시지 표시"/>
                     </Grid>
 
                     <!-- ② Content: Raw Data DataGrid -->
@@ -210,18 +285,51 @@
                         IsReadOnly="True"
                         BorderBrush="#000000"
                         Foreground="#000000"
-                        Background="#000000"
-                        >
+                        Background="#000000">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="STBY Start" Binding="{Binding STBY_Start}"  Width ="*" MinWidth="80"/>
-                            <DataGridTextColumn Header="Run Lamp"   Binding="{Binding RunLamp}"     Width ="*" MinWidth="80"/>
-                            <DataGridTextColumn Header="Overload"   Binding="{Binding Overload}"    Width ="*" MinWidth="80"/>
-                            <DataGridTextColumn Header="Mode"       Binding="{Binding ModeStatus}"  Width ="*" MinWidth="80"/>
-                            <DataGridTextColumn Header="Run Req"    Binding="{Binding RUN_req}"     Width ="*" MinWidth="80"/>
-                            <DataGridTextColumn Header="Reset Btn"  Binding="{Binding ResetButton}" Width ="*" MinWidth="80"/>
-                            <DataGridTextColumn Header="STBY Lamp"  Binding="{Binding StandByLamp}" Width ="*" MinWidth="80"/>
-                            <DataGridTextColumn Header="Low Press"  Binding="{Binding TXLowpress}"  Width ="*" MinWidth="80"/>
+                            <DataGridTextColumn Header="시간" Binding="{Binding Timestamp}" Width="2*" MinWidth="100"/>
+                            <DataGridTextColumn Header="CAN ID" Binding="{Binding CanId}" Width="1*" MinWidth="60"/>
+                            <DataGridTextColumn Header="STBY Start" Binding="{Binding STBY_Start}" Width="*" MinWidth="80"/>
+                            <DataGridTextColumn Header="Run Lamp" Binding="{Binding RunLamp}" Width="*" MinWidth="80"/>
+                            <DataGridTextColumn Header="Overload" Binding="{Binding Overload}" Width="*" MinWidth="80"/>
+                            <DataGridTextColumn Header="Mode" Binding="{Binding ModeStatus}" Width="*" MinWidth="80"/>
+                            <DataGridTextColumn Header="Run Req" Binding="{Binding RUN_req}" Width="*" MinWidth="80"/>
+                            <DataGridTextColumn Header="Reset Btn" Binding="{Binding ResetButton}" Width="*" MinWidth="80"/>
+                            <DataGridTextColumn Header="STBY Lamp" Binding="{Binding StandByLamp}" Width="*" MinWidth="80"/>
+                            <DataGridTextColumn Header="Low Press" Binding="{Binding TXLowpress}" Width="*" MinWidth="80"/>
                         </DataGrid.Columns>
+                        
+                        <!-- 데이터가 없을 때 표시할 메시지 -->
+                        <DataGrid.Style>
+                            <Style TargetType="DataGrid">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ViewModel.TestRawDataTimelineItems.Count}" Value="0">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="DataGrid">
+                                                    <Border BorderBrush="{TemplateBinding BorderBrush}" 
+                                                            BorderThickness="{TemplateBinding BorderThickness}" 
+                                                            Background="{TemplateBinding Background}">
+                                                        <Grid>
+                                                            <ScrollViewer x:Name="DG_ScrollViewer" Focusable="false">
+                                                                <ItemsPresenter x:Name="ItemsPresenter" 
+                                                                              SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                                            </ScrollViewer>
+                                                            <TextBlock Text="전송된 CAN 데이터가 없습니다." 
+                                                                       Foreground="#F3F3F3" 
+                                                                       HorizontalAlignment="Center" 
+                                                                       VerticalAlignment="Center" 
+                                                                       FontSize="16"
+                                                                       Opacity="0.7"/>
+                                                        </Grid>
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.Style>
                     </DataGrid>
                 </Grid>
             </ui:Card>
@@ -229,13 +337,41 @@
 
         <Grid Grid.Row="1">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,10">
+                <!-- CAN 시뮬레이션 제어 버튼들 -->
                 <ui:Button 
-                Content="카드 상태 테스트" 
-                Command="{Binding DeviceStatusCardViewModel.UpdateRandomDeviceStatusCommand}"
-                Background="#212121"
-                Foreground="#F3F3F3"
-                BorderBrush="#33334D"
-                Margin="0,0,10,0"/>
+                    Content="CAN 시뮬레이션 시작"
+                    Command="{Binding ViewModel.StartCANSimulationCommand}"
+                    Background="#29A745"
+                    Foreground="#F3F3F3"
+                    BorderBrush="#0D7F33"
+                    Margin="0,0,10,0"
+                    ToolTip="가상 CAN 데이터 송수신 시작"/>
+                
+                <ui:Button 
+                    Content="CAN 시뮬레이션 중지"
+                    Command="{Binding ViewModel.StopCANSimulationCommand}"
+                    Background="#E23B3B"
+                    Foreground="#F3F3F3"
+                    BorderBrush="#9D1E1E"
+                    Margin="0,0,10,0"
+                    ToolTip="가상 CAN 데이터 송수신 중지"/>
+                
+                <ui:Button 
+                    Content="CAN 설정"
+                    Command="{Binding ViewModel.ShowCANSettingsCommand}"
+                    Background="#17A2B8"
+                    Foreground="#F3F3F3"
+                    BorderBrush="#117A8B"
+                    Margin="0,0,10,0"
+                    ToolTip="CAN 통신 설정"/>
+                
+                <ui:Button 
+                    Content="카드 상태 테스트" 
+                    Command="{Binding DeviceStatusCardViewModel.UpdateRandomDeviceStatusCommand}"
+                    Background="#212121"
+                    Foreground="#F3F3F3"
+                    BorderBrush="#33334D"
+                    Margin="0,0,10,0"/>
             </StackPanel>
         </Grid>
         
@@ -248,93 +384,6 @@
             <Grid x:Name="deviceCard" Grid.Column="0" Visibility="Visible">
                 <Controls:DeviceStatusCard DataContext="{Binding DeviceStatusCardViewModel.DeviceStatusCardModels}"/>
             </Grid>
-
-            <!-- ID 1 --><!--
-            <Grid x:Name="deviceCard1" Grid.Column="0" Visibility="Collapsed">
-                <Controls:DeviceStatusCard/>
-            </Grid>
-
-            --><!-- ID 2 --><!--
-            <Grid x:Name="deviceCard2" Grid.Column="1" Visibility="Collapsed">
-                <Controls:DeviceStatusCard />
-            </Grid>
-
-            --><!-- ID 3 --><!--
-            <Grid x:Name="deviceCard3" Grid.Column="2" Visibility="Collapsed">
-                <Controls:DeviceStatusCard />
-            </Grid>-->
-
-            
         </Grid>
     </Grid>
 </Page>
-
-<!--<Grid VerticalAlignment="Top" Margin="-20,20,0,0">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="2*" />
-            <RowDefinition Height="1*" />
-        </Grid.RowDefinitions>
-        
-        <Grid Grid.Row="0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-
-            <Grid Grid.Column="0">
-                <ui:TextBlock
-                    Text="TB Row 0, Column 0"
-                />
-            </Grid>
-            <Grid Grid.Column="1">
-                <Border BorderBrush="Gray" BorderThickness="2" CornerRadius="5">
-                    <ui:ListView ItemsSource="{Binding ViewModel.TestRawDataTimelineItems}" ViewState="GridView">
-                        <ui:ListView.ItemContainerStyle>
-                            <Style TargetType="ListViewItem">
-                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                                <Setter Property="VerticalContentAlignment"   Value="Center"/>
-                            </Style>
-                        </ui:ListView.ItemContainerStyle>
-                        <ui:ListView.View>
-                            <ui:GridView>
-                                <GridViewColumn Header="STBY_Start"    DisplayMemberBinding="{Binding STBY_Start}"/>
-                                <GridViewColumn Header="RunLamp"       DisplayMemberBinding="{Binding RunLamp}"/>
-                                <GridViewColumn Header="Overload"      DisplayMemberBinding="{Binding Overload}"/>
-                                <GridViewColumn Header="ModeStatus"    DisplayMemberBinding="{Binding ModeStatus}"/>
-                                <GridViewColumn Header="RUN_req"       DisplayMemberBinding="{Binding RUN_req}"/>
-                                <GridViewColumn Header="ResetBtn"      DisplayMemberBinding="{Binding ResetButton}"/>
-                                <GridViewColumn Header="StandByLamp"   DisplayMemberBinding="{Binding StandByLamp}"/>
-                                <GridViewColumn Header="TXLowpress"    DisplayMemberBinding="{Binding TXLowpress}"/>
-                            </ui:GridView>
-                        </ui:ListView.View>
-                    </ui:ListView>
-                </Border>
-            </Grid>
-        </Grid>
-
-        <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <Grid Grid.Column="0">
-                <ui:TextBlock
-                    Text="TB Row1, Column0"
-                    />
-
-            </Grid>
-            <Grid Grid.Column="1">
-                <ui:TextBlock
-                    Text="TB Row1, Column1"
-                    />
-
-            </Grid>
-            <Grid Grid.Column="2">
-                <ui:TextBlock
-                    Text="TB Row1, Column2"
-                    />
-
-            </Grid>
-        </Grid>
-    </Grid>-->
