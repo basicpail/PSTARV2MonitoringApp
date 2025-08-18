@@ -10,8 +10,8 @@ namespace PSTARV2MonitoringApp.Models
     /// </summary>
     public class PSTPumpModel : IDisposable
     {
-        #region 상태 변수 (PSTARFW.c와 동일한 변수명 사용)
-        // PSTAR 로직 코어 변수 (핵심 변수)
+        #region 상태 변수 (FW와 동일한 변수명 사용)
+        // PSTAR 동작 상태 변수
         public bool RunStatus { get; private set; } = false;       // 0: STOP, 1: RUN
         public bool HeatStatus { get; private set; } = false;      // 0: HEAT_OFF, 1: HEAT_ON
         public bool ModeStatus { get; private set; } = false;      // 0: MANUAL_MODE, 1: STBY_MODE
@@ -72,7 +72,7 @@ namespace PSTARV2MonitoringApp.Models
 
         #region 이벤트
         // CAN 데이터 전송 이벤트
-        public event EventHandler<Services.CANTransmitEventArgs> CANDataTransmitted;
+        public event EventHandler<CANTransmitEventArgs> CANDataTransmitted;
 
         // 상태 변경 이벤트
         public event EventHandler<DeviceStateChangedEventArgs> DeviceStateChanged;
@@ -181,6 +181,8 @@ namespace PSTARV2MonitoringApp.Models
 
         /// <summary>
         /// CAN 데이터 전송 (tx_data)
+        /// 타이머에 의해 주기적으로 OnTransmitTimerElapsed가 호출되고
+        /// TransmitCANData가 호출되면 CANDataTransmitted 이벤트 핸들러가 호출되고, TestViewModel의 OnPumpCANDataTransmitted가 호출된다.
         /// </summary>
         private void TransmitCANData()
         {
@@ -196,6 +198,7 @@ namespace PSTARV2MonitoringApp.Models
             data[7] = (byte)(TXLowpress ? 1 : 0);
 
             // CAN 프레임 생성
+            // 250818TODO 전송할 CAN 프레임 형식 정의하고 CANFrame.cs 코드 정리
             var frame = new CANFrame
             {
                 Id = _canId,
@@ -204,7 +207,7 @@ namespace PSTARV2MonitoringApp.Models
             };
 
             // 이벤트 발생
-            CANDataTransmitted?.Invoke(this, new Services.CANTransmitEventArgs(frame));
+            CANDataTransmitted?.Invoke(this, new CANTransmitEventArgs(frame));
         }
 
         #region PSTARFW.c 함수 구현

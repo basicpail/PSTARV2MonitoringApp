@@ -57,15 +57,15 @@ namespace PSTARV2MonitoringApp.Models
         /// </summary>
         public static readonly List<DeviceModel> SupportedDeviceModels = new()
         {
-            new DeviceModel("PSTAR-V2-5", "PSTAR V2 ±âº» ¸ðµ¨"),
-            new DeviceModel("PSTAR-V2-5H", "PSTAR V2 °í¿ÂÇü ¸ðµ¨"),
-            new DeviceModel("PSTAR-V2-5-S", "PSTAR V2 ¼ÒÇü ¸ðµ¨"),
-            new DeviceModel("PSTAR-V2-5H-S", "PSTAR V2 °í¿ÂÇü ¼ÒÇü ¸ðµ¨"),
-            new DeviceModel("PSTAR-V2-5-R", "PSTAR V2 ¿ø°Ý Á¦¾îÇü ¸ðµ¨"),
-            new DeviceModel("PSTAR-V2-5H-R", "PSTAR V2 °í¿ÂÇü ¿ø°Ý Á¦¾îÇü ¸ðµ¨")
+            new DeviceModel("PSTAR-V2-5", "PSTAR V2 ¸ðµ¨"),
+            new DeviceModel("PSTAR-V2-5H", "PSTAR V2 ¸ðµ¨"),
+            new DeviceModel("PSTAR-V2-5-S", "PSTAR V2 ¸ðµ¨"),
+            new DeviceModel("PSTAR-V2-5H-S", "PSTAR V2 ¸ðµ¨"),
+            new DeviceModel("PSTAR-V2-5-R", "PSTAR V2 ¸ðµ¨"),
+            new DeviceModel("PSTAR-V2-5H-R", "PSTAR V2 ¸ðµ¨")
         };
 
-        #region Helper Methods
+        #region Methods
 
         /// <summary>
         /// ID·Î DeviceId °´Ã¼ Ã£±â

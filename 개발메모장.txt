@@ -1,0 +1,111 @@
+﻿1. DashboardPage.xaml에서 Controls:DeviceStatusCard가 표시 안되는 문제.
+-> DeviceStatusCard 생성자에서 InitializeComponent(); 호출 하면 XAML에 정의된 UI 요소들을 초기화 한다.
+
+2. DashboardPage.xaml에서 전체 페이지 스크롤/ 데이터그리드 스크롤이 안되는 문제가 있다. 
+-> 중요한건 아니니 나중에 다시 수정하도록
+
+3. DashboardPage.xaml에서 StaticResource 정리 좀 해야한다.
+->
+
+4. DeviceStatusCardViewModel에서 어떤 값이 발생하는경우에 DeviceStatusCard를 초기화 해서 DashboardPage에 표시해야 한다.
+-> Collapsed 에서 Visible로 바꾸면서 값을 업데이트 하면 될거 같은데?
+-> 
+
+
+5. button이 안먹힌다!!!
+-> 활성화가 안되는거 같은데.. 커서 모양도 안바뀐다.
+-> overlay된 Grid에 배경 설정이 되어 있었다.. 2번 현상도 같은 문제
+
+6. 구조 다시 정리해보자
+장치 상태 패널은 Control에 따로 정의 한 후 DashboardPage에 불러왔다.
+
+카드 상태 테스트 버튼을 누르면 Collapsed 되어 있는 태그가 Visible로 변경되고, 새로운 객체를 DeviceStatusCardmodel형식으로 만들어서 observablecollection에 삽입한다.
+이 과정에서 값이 변경되었으므로 DeviceStatusCardViewModel을 viewModel로 받고 있는, DeviceStatusCard 까지 변경 사항이 전달 되고 view에서 바인딩 하고 있는 값이
+바뀔 것이라 생각했다.
+
+여기서,
+1. collection 전체를 바인딩하고, 배열에 있는 객체들을 순회하면서 카드 3장을 그린다.
+-> 깔끔하긴한데, 값이 바뀔 때 마다 객체를 초기화 시켜서 전달해야 하고 그걸 또 순회 하면서 렌더링 해야 하니까 비효율적이라는 생각이 든다.
+-> 객체를 초기화 하기 전에 값을 비교해서 변경된 값이 없으면 무시하도록 하면 어느정도 비효율을 막을 수 있을 것이라 생각한다.
+
+2. Dashboardpage에서 카드를 하나 씩 선언, 그리고 [0], [1], [2] 이렇게 요소를 직접 전달.
+
+Q) DashboardPage.xaml에서 <Controls:DeviceStatusCard /> 로 초기화 해버리면 코드 비하인드에서 조작을 못하잖아? 둘은 완전히 다른 인스턴스가 되어 버리니까
+-> 그렇다면 모든 로직은 DeviceStatusCard 쪽에서 처리하도록 해야할거 같은디.. 
+fluent:add-square-16-regular
+
+
+7. Dialog 구현 문제
+Dialog의 기능 구현을 DashboardViewModel에 해 놓은 상황인데, Dialog가 여러개 생기면 DashboardViewModel의 코드 분량이 너무 많아 질거 같으니 파일로 나눠서 작성할 예정
+-> 어떻게 구조적으로 잘 나눌 수 있을까를 생각해봐야한다.
+-> 각 Dialog 마다 파일을 따로 나눌 것인지, 하나의 클래스로 여러 dialog에 적용하능 방법이 있을까?
+
+LoadAvailables 를 그냥 Id1, Id2, Id3 로 하드코딩해서 코드 단순화.. 괜히 복잡하게 구현할 필요 없다.
+idFilterDialog.xaml.cs 에 정의한 클래스를 그대로 dialog에 띄우니까 PrimaryButton, SecondaryButton 등이 나오지 않는다..
+
+IdFilterDialog.xaml은 ContentDialog의 Content에 넣어준다.
+
+
+dialog 주변에 생기는 배경의 크기를 조절해야 한다.(없애거나 전체 화면으로 늘리거나)
+이 배경은 dialog와 overlay해서 생기는거 같다. 하지만 현재 "RootContentDialog"를 Contentpresenter로 사용하고 있으니까 overlay 될 만한 요소가 뭔지 파악이 안된다..
+
+
+8. 장치 이미지 표시
+장치 이미지를 png로 표현하면 해상도 때문에 깔끔하게 표시가 안된다. wpf는 기본적으로 svg 지원이 안되므로 sharpVectors.Wpf 패키지를 설치해서 사용하도록 한다.
+-> 중요한 작업은 아니지만 공수가 꽤 들어갈거 같으니 나중에 수정하자
+-> 아니면 이 장치 그림을 xaml을 이용해서 똑같이 구현한다면? 훨씬 다루기가 쉬워질거 같은데.
+-> 이미지 대신 xaml 을 이용해서 구현 했음 (style 코드 반복되는 부분 resource 로 정리 , margin,pading 하드 코딩 정리 해야 함)
+
+
+9. DevicePanel 로직 처리
+-> DevicePanel ViewModel 만들어서 xaml 과 바인딩 해야겠지?..
+-> 지금 IdFilter 부분을 보면 dialog만 DashboardViewModel에서 처리하고 있다. dialog에서 선택된 값을 SelectedIdFilter에 넣어서 ApplyFilter에 적용
+-> DevicePanel도 마찬가지로 TestViewModel에서 dialog 처리, 
+
+
+
+10. 장치 추가 dialog
+-> 글자 잘리는 문제, ComboBox가 글자 크기보다 작은 문제, ComboBox에 기본 값 넣기.
+-> ViewModel에서 ContentDialog 정의할 때 Width,Height 관련 설정을 하면 글자도 잘리고 뒤의 배경도 잘리더라. 필터 dialog도 크기 변경하면 괜찮아 질거같은데?
+
+----
+※ CANDataReceivedEventArgs는 CANCommunicationService.cs 에서 선언한 EventArgs클래스를 상속받은 클래스이고, 생성자 인수로 CANFrame을 전달 받아서 초기화 한다.
+
+11. 장치를 관리하는 ObservableCollection 확인
+- 버튼 클릭한 상태도 전역으로 관리 되어야하고, (PowerFail이나 Blackout 상황에서 다시 켜지는 시나리오를 구성할 때 이전 값을 알아야 하니까..)
+버튼 클릭해서 ON OFF 되는 램프의 상태들도 전역으로 관리 되어야 한다. (버튼 클릭해서 ON/OFF 하는 경우, CAN 데이터를 Parse해서 ON/OFF 하는 경우)
+각 컴포넌트(Card, Panel, RawData, Log) 등에서 동일한 상태값을 유지해야 한다.
+- private readonly Dictionary<string, PSTARDevicePanelViewModel> _deviceViewModels
+- private readonly Dictionary<string, PSTARDevicePanel> _devicePanels
+
+var devicePanelModel = new PSTARDevicePanelModel(deviceId.Id, deviceModel.ModelName);
+PSTARDevicePanelViewModel은 PSTARDevicePanelModel 을 인스턴스로 가지고 이 값이 변경되면 PSTARDevicePanel.xaml의 DeviceModel_PropertyChanged가 호출되어 PanelModel의 값에 따라 UI상의 램프가 변경된다.
+마찬가지로 CAN 데이터가 수신되면, CANDataProcessingService의 UpdateDevicePanel이 호출되고, 이 메서드는 PSTARDevicePanelViewModel의 UpdateDeviceState를 호출하여 PanelModel의 값을 변경한다.
+
+PSTPumpModel 타이머에 의해 주기적으로 OnTransmitTimerElapsed메서드가 호출되고
+TransmitCANData메서드가 호출되면 CANDataTransmitted 이벤트 핸들러가 호출(invoke, Frame전달)되고, PSTARDevicePanelViewModel의 OnPumpCANDataTransmitted가 호출된다.
+OnPumpCANDataTransmitted는 CANCommunicationServices의 SendAsync 를 호출하고 CAN 메시지가 전송된다.
+
+12. Service와 Model 연동
+CANDataProcessingService.cs에서 - OnCANDataReceived에서 1.DeviceStatusCard, 2.PSTARDevicePanel, 3.Raw Data 세 항목 업데이트 한다.
+하지만 이 값들을 업데이트하기 위해서는 PSTPumpModel.cs(파일명 변경하자)에 있는 로직들이 필요하다.
+
+PSTPumpModel에 있는 장치 상태에 대한 정의들을 deviceInfo와 통합하고, 여러가지 로직들은 CANDataProcessingService.cs와 통합하는게 구조상 좋아보인다.
+Q) PSTPumpModel 의 타이머로 로직을 처리하는 부분을 다른 파일에 적절히 합치는게 가능할까? 된다 하더라도 노력에 비해서 이득이 별로 없다고 판단.
+
+13. DevicePanel 을 update하는 메서드를 통합
+
+
+※ 
+CANDataProcessingService.cs에 private void OnCANDataReceived(object sender, CANDataReceivedEventArgs e) 정의
+PSTARDevicePanelViewModel.cs에 private void OnCANDataReceived(object sender, CANDataReceivedEventArgs e) 정의
+
+
+
+PSTPumpModel.cs에 선언한 변수들을 하나의 모델로 정의 그리고 그 모델의 인스턴스를 PanelViewModel과 공유
+PSTPumpModel안에서는 주기적으로 로직을 처리하고 있으므로 Panel의 버튼을 눌려서 값이 변경되면 혹은 CAN 데이터의 값에 따라 상태가 변하면
+주기적인 로직 처리에 의해서 LAMP 값이나 CAN 프레임의 값이 변경되도록 해야한다.
+
+
+
+

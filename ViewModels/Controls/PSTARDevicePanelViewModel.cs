@@ -143,7 +143,7 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
         /// <summary>
         /// 펌프 모델 CAN 데이터 전송 이벤트 처리
         /// </summary>
-        private async void OnPumpCANDataTransmitted(object sender, Services.CANTransmitEventArgs e)
+        private async void OnPumpCANDataTransmitted(object sender, CANTransmitEventArgs e)
         {
             if (IsCANTransmissionActive && _canService.IsConnected)
             {
