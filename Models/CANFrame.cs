@@ -53,7 +53,8 @@ namespace PSTARV2MonitoringApp.Models
         public bool IsCommFailure { get; set; }
         public bool IsLowPressure { get; set; }
         public bool IsStandby { get; set; }
-        public bool IsOn { get; set; }
+        public bool IsHeatOn { get; set; }
+        public bool IsStandbyMode { get; set; }
         public bool IsManualMode { get; set; }
         
         // Raw Data

@@ -82,9 +82,24 @@ var devicePanelModel = new PSTARDevicePanelModel(deviceId.Id, deviceModel.ModelN
 PSTARDevicePanelViewModel은 PSTARDevicePanelModel 을 인스턴스로 가지고 이 값이 변경되면 PSTARDevicePanel.xaml의 DeviceModel_PropertyChanged가 호출되어 PanelModel의 값에 따라 UI상의 램프가 변경된다.
 마찬가지로 CAN 데이터가 수신되면, CANDataProcessingService의 UpdateDevicePanel이 호출되고, 이 메서드는 PSTARDevicePanelViewModel의 UpdateDeviceState를 호출하여 PanelModel의 값을 변경한다.
 
+---> PSTPumpModel에서 사용하는 데이터와 PSTARDevicePanelModel에서 사용하는 데이터가 같은지 확인.
+사용하는 데이터가 다르다. pumpModel 에서는 TransmitCANData 메서드가 정의되어 있고, 거기의 Data가 PumpModel의 로직에 의해서 정의된다.
+하지만 DevicePanel에서 조작해서 변경된 데이터가 pumpModel 까지 전달이 안되니까, 로직이 제대로 작동하지 않는다.
+
+
+1. PSTARDevicePanel
+2. PSTPumpModel
+은 같은 장치이므로 상태값을 공유해야해.
+예를들어, PSTARDevicePanel에서 START 버튼을 누르면, 디바이스 상태 값이 변경되고 그 값이 곧 PSTPumpModel에도 반영되어서, 주기적으로 처리되고 있는 PSTPumpModel 안의 로직에 변경된 값이 들어가야 하는것이지. 그리고 PSTPumpModel에서 값을 변경한다면 그 값은 PSTARDevicePanel에도 반영이 되어야해.
+
+그러기 위해서는 두 코드가 같은 데이터 Model을 공유해야 할거 같은데?
+코드 변경을 최소화 하려면 지금 정의되어 있는 PSTARDevicePanelModel.cs에 PSTPumpModel의 프로퍼티들을 포함시켜서 재정의 하는 방법이 좋을거 같아.
+
 PSTPumpModel 타이머에 의해 주기적으로 OnTransmitTimerElapsed메서드가 호출되고
 TransmitCANData메서드가 호출되면 CANDataTransmitted 이벤트 핸들러가 호출(invoke, Frame전달)되고, PSTARDevicePanelViewModel의 OnPumpCANDataTransmitted가 호출된다.
 OnPumpCANDataTransmitted는 CANCommunicationServices의 SendAsync 를 호출하고 CAN 메시지가 전송된다.
+
+---
 
 12. Service와 Model 연동
 CANDataProcessingService.cs에서 - OnCANDataReceived에서 1.DeviceStatusCard, 2.PSTARDevicePanel, 3.Raw Data 세 항목 업데이트 한다.
@@ -95,7 +110,7 @@ Q) PSTPumpModel 의 타이머로 로직을 처리하는 부분을 다른 파일�
 
 13. DevicePanel 을 update하는 메서드를 통합
 
-
+----
 ※ 
 CANDataProcessingService.cs에 private void OnCANDataReceived(object sender, CANDataReceivedEventArgs e) 정의
 PSTARDevicePanelViewModel.cs에 private void OnCANDataReceived(object sender, CANDataReceivedEventArgs e) 정의
@@ -106,6 +121,23 @@ PSTPumpModel.cs에 선언한 변수들을 하나의 모델로 정의 그리고 �
 PSTPumpModel안에서는 주기적으로 로직을 처리하고 있으므로 Panel의 버튼을 눌려서 값이 변경되면 혹은 CAN 데이터의 값에 따라 상태가 변하면
 주기적인 로직 처리에 의해서 LAMP 값이나 CAN 프레임의 값이 변경되도록 해야한다.
 
+----
+
+14. 버튼 입력에 따른 램프 출력 확인
+
+IsOn -> IsHeatOn 수정
+IsStandbyMode = false; 추가
+Manual, STBY 상태 toggle 구현
+HEAT, MODE, START, STOP 확인
+resetCommand는 정의만 되어 있음
+
+모든 상태를 OnPropertyChanged로 업데이트하면 비효율적이고 성능저하 우려된다.
+
+굳이 루프 돌릴 필요 있을까?
+Panel 조작해서 데이터 업데이트 되면, 그 때 이벤트 핸들러 연결해서 전체 로직(main) 쭉 실행시키는게 낫지 않나?
+CAN received는 계속 메시지 받아서 파싱하다가 변경된 데이터가 있으면 그 때 다시 로직 처리.
 
 
+----
 
+StartCANSimulation (DashbaordViewModel) -> StartAsync (CANCommunicationService) -> _canService.ConnectionStatusChanged += OnConnectionStatusChanged; (PSTARDevicePanelViewModel)

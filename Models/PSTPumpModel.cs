@@ -10,64 +10,16 @@ namespace PSTARV2MonitoringApp.Models
     /// </summary>
     public class PSTPumpModel : IDisposable
     {
-        #region 상태 변수 (FW와 동일한 변수명 사용)
-        // PSTAR 동작 상태 변수
-        public bool RunStatus { get; private set; } = false;       // 0: STOP, 1: RUN
-        public bool HeatStatus { get; private set; } = false;      // 0: HEAT_OFF, 1: HEAT_ON
-        public bool ModeStatus { get; private set; } = false;      // 0: MANUAL_MODE, 1: STBY_MODE
-
-        // 출력 데이터 (CAN 송신)
-        public bool STBY_Start { get; private set; } = false;      // tx_data[0]
-        public bool RunLamp { get; private set; } = false;         // tx_data[1]
-        public bool Overload { get; private set; } = false;        // tx_data[2]
-        public bool RUN_req { get; private set; } = false;         // tx_data[4]
-        public bool ResetButton { get; private set; } = false;     // tx_data[5]
-        public bool StandByLamp { get; private set; } = false;     // tx_data[6]
-        public bool TXLowpress { get; private set; } = false;      // tx_data[7]
-        public bool StopLamp { get; private set; } = true;         // 정지 램프 상태
-
-        // 입력 신호
-        private bool RunFB_I = false;                              // 실행 피드백 입력
-        private bool RunRemote_I = false;                          // 원격 실행 입력
-        private bool StopRemote_I = false;                         // 원격 정지 입력
-        private bool Overload_I = false;                           // 과부하 입력
-        private bool Lowpress_I = false;                           // 저압 입력
-
-        // 플래그 변수
-        private bool Request_Flag = false;                         // 실행 요청 플래그
-        private bool STBY_Overload = false;                        // STBY 과부하 플래그
-        private bool Stop_Overload = false;                        // 정지 과부하 플래그
-        private bool txLowpress = false;                           // 내부 저압 상태
-        private bool Error_Flag1 = false;                          // ID 1 오류 플래그
-        private bool Error_Flag2 = false;                          // ID 2 오류 플래그
-        private bool Error_Flag3 = false;                          // ID 3 오류 플래그
-        private bool InitFlag = false;                             // 초기화 플래그
-        private bool ComStatus_Flag = false;                       // 연결 상태 플래그
-
-        // 타이머 변수
-        private int CountBuildUpTime_S = 0;                        // BuildUp 시간 카운터
-        private int CountParallelTime_S = 0;                       // Parallel 시간 카운터
-        private int CountBuildUpStart = 0;                         // BuildUp 시작 플래그
-        private int CountParaStart = 0;                            // Parallel 시작 플래그
-        private int BuildUpTime = 5;                               // BuildUp 시간 (초)
-        private int ParallelTime = 10;                             // Parallel 시간 (초)
-
-        // 연결 상태
-        private int ComStatus = 0;                                 // 0: NoConnection, 1: StandBy_3to2, 2: StandBy_2, 3: StandBy_3
-                                                                   // 4: Manual, 5: StandBy_3_1RUN, 6: StandBy_3to2_1RUN
-
+        #region 변수
         // 장치 ID와 CAN ID
         private readonly string _deviceId;
         private readonly uint _canId;
 
-        // 타이머
-        private readonly Timer _transmitTimer;                     // CAN 전송 타이머
-        private readonly Timer _logicTimer;                        // 로직 처리 타이머
+        // CAN 전송 타이머 (로직 타이머는 제거)
+        private readonly Timer _transmitTimer;
 
-        // 수신 데이터 (다른 펌프로부터)
-        private byte[] rx_data1 = new byte[8];                     // ID 1 수신 데이터
-        private byte[] rx_data2 = new byte[8];                     // ID 2 수신 데이터
-        private byte[] rx_data3 = new byte[8];                     // ID 3 수신 데이터
+        // 모델 레퍼런스 (장치 모델 공유)
+        private PSTARDevicePanelModel _model;
         #endregion
 
         #region 이벤트
@@ -76,6 +28,21 @@ namespace PSTARV2MonitoringApp.Models
 
         // 상태 변경 이벤트
         public event EventHandler<DeviceStateChangedEventArgs> DeviceStateChanged;
+        #endregion
+
+        #region 프로퍼티
+        // 상태 접근을 위한 읽기 전용 프로퍼티
+        public bool RunStatus => _model?.RunStatus ?? false;
+        public bool HeatStatus => _model?.HeatStatus ?? false;
+        public bool ModeStatus => _model?.ModeStatus ?? false;
+        public bool STBY_Start => _model?.STBY_Start ?? false;
+        public bool RunLamp => _model?.RunLamp ?? false;
+        public bool Overload => _model?.Overload ?? false;
+        public bool RUN_req => _model?.RUN_req ?? false;
+        public bool ResetButton => _model?.ResetButton ?? false;
+        public bool StandByLamp => _model?.StandByLamp ?? false;
+        public bool TXLowpress => _model?.TXLowpress ?? false;
+        public bool StopLamp => _model?.StopLamp ?? true;
         #endregion
 
         /// <summary>
@@ -94,11 +61,6 @@ namespace PSTARV2MonitoringApp.Models
                 default: _canId = 0x100; break;
             }
 
-            // 로직 처리 타이머 (100ms 주기)
-            _logicTimer = new Timer(100);
-            _logicTimer.Elapsed += OnLogicTimerElapsed;
-            _logicTimer.AutoReset = true;
-
             // CAN 전송 타이머 (300ms 주기 - PSTARFW.c의 CanDelay_mS)
             _transmitTimer = new Timer(300);
             _transmitTimer.Elapsed += OnTransmitTimerElapsed;
@@ -106,12 +68,47 @@ namespace PSTARV2MonitoringApp.Models
         }
 
         /// <summary>
+        /// 장치 모델 설정
+        /// </summary>
+        public void SetModel(PSTARDevicePanelModel model)
+        {
+            // 기존 모델 이벤트 구독 해제
+            if (_model != null)
+            {
+                _model.StateChanged -= OnModelStateChanged;
+            }
+
+            // 새 모델 설정
+            _model = model;
+
+            // 새 모델이 있으면 이벤트 구독
+            if (_model != null)
+            {
+                _model.StateChanged += OnModelStateChanged;
+            }
+        }
+
+        /// <summary>
+        /// 모델 상태 변경 이벤트 처리
+        /// </summary>
+        private void OnModelStateChanged(object sender, EventArgs e)
+        {
+            // 모델 상태가 변경되면 펌프 로직 실행
+            ExecutePumpLogic();
+
+            // 상태 변경 알림
+            NotifyStateChanged();
+        }
+
+        /// <summary>
         /// 시뮬레이션 시작
         /// </summary>
         public void StartSimulation()
         {
-            _logicTimer.Start();
             _transmitTimer.Start();
+
+            // 초기 로직 실행
+            ExecutePumpLogic();
         }
 
         /// <summary>
@@ -119,33 +116,31 @@ namespace PSTARV2MonitoringApp.Models
         /// </summary>
         public void StopSimulation()
         {
-            _logicTimer.Stop();
             _transmitTimer.Stop();
         }
 
         /// <summary>
-        /// 로직 타이머 이벤트 - 펌웨어의 메인 루프 역할
+        /// 펌프 로직 실행 (이전 OnLogicTimerElapsed의 내용)
         /// </summary>
-        private void OnLogicTimerElapsed(object sender, ElapsedEventArgs e)
+        private void ExecutePumpLogic()
         {
+            if (_model == null) return;
+
             // PSTARFW.c의 메인 루프 로직 구현
             UpdatePressureStatus();
             ProcessInputs();
-            RunStopProc(RunStatus);
+            RunStopProc(_model.RunStatus);
             RunInput();
-            HeatProc(HeatStatus);
-            ModeProc(ModeStatus);
-            OverloadProc(Overload_I);
-            LowpressProc(Lowpress_I);
+            HeatProc(_model.HeatStatus);
+            ModeProc(_model.ModeStatus);
+            OverloadProc(_model.Overload_I);
+            LowpressProc(_model.Lowpress_I);
             ComFailErrorFlag();
             ReceiveRunReq();
             SendRunReq();
             ConnectFunction();
-            StandByLampProc(ModeStatus);
+            StandByLampProc(_model.ModeStatus);
             StbyStartAlarm();
-
-            // 상태 변경 알림
-            NotifyStateChanged();
         }
 
         /// <summary>
@@ -161,44 +156,31 @@ namespace PSTARV2MonitoringApp.Models
         /// </summary>
         public void ProcessReceivedCANFrame(CANFrame frame)
         {
-            // CAN ID에 따라 적절한 수신 버퍼에 저장
-            if (frame.Id == 0x100 && _canId != 0x100)
-            {
-                Array.Copy(frame.Data, rx_data1, Math.Min(frame.Data.Length, 8));
-                Error_Flag1 = false;  // COM Fault 카운터 리셋
-            }
-            else if (frame.Id == 0x200 && _canId != 0x200)
-            {
-                Array.Copy(frame.Data, rx_data2, Math.Min(frame.Data.Length, 8));
-                Error_Flag2 = false;  // COM Fault 카운터 리셋
-            }
-            else if (frame.Id == 0x300 && _canId != 0x300)
-            {
-                Array.Copy(frame.Data, rx_data3, Math.Min(frame.Data.Length, 8));
-                Error_Flag3 = false;  // COM Fault 카운터 리셋
-            }
+            if (_model == null) return;
+
+            // 모델에 프레임 처리 위임
+            _model.ProcessReceivedCANFrame(frame);
         }
 
         /// <summary>
-        /// CAN 데이터 전송 (tx_data)
-        /// 타이머에 의해 주기적으로 OnTransmitTimerElapsed가 호출되고
-        /// TransmitCANData가 호출되면 CANDataTransmitted 이벤트 핸들러가 호출되고, TestViewModel의 OnPumpCANDataTransmitted가 호출된다.
+        /// CAN 데이터 전송
         /// </summary>
         private void TransmitCANData()
         {
-            // PSTARFW.c의 tx_data 배열과 동일하게 구성
+            if (_model == null) return;
+
+            // 모델에서 데이터 읽어서 CAN 프레임 구성
             byte[] data = new byte[8];
-            data[0] = (byte)(STBY_Start ? 1 : 0);
-            data[1] = (byte)(RunLamp ? 1 : 0);
-            data[2] = (byte)(Overload ? 1 : 0);
-            data[3] = (byte)(ModeStatus ? 1 : 0);  // 0: MANUAL, 1: STBY
-            data[4] = (byte)(RUN_req ? 1 : 0);
-            data[5] = (byte)(ResetButton ? 1 : 0);
-            data[6] = (byte)(StandByLamp ? 1 : 0);
-            data[7] = (byte)(TXLowpress ? 1 : 0);
+            data[0] = (byte)(_model.STBY_Start ? 1 : 0);
+            data[1] = (byte)(_model.RunLamp ? 1 : 0);
+            data[2] = (byte)(_model.Overload ? 1 : 0);
+            data[3] = (byte)(_model.ModeStatus ? 1 : 0);  // 0: MANUAL, 1: STBY
+            data[4] = (byte)(_model.RUN_req ? 1 : 0);
+            data[5] = (byte)(_model.ResetButton ? 1 : 0);
+            data[6] = (byte)(_model.StandByLamp ? 1 : 0);
+            data[7] = (byte)(_model.TXLowpress ? 1 : 0);
 
             // CAN 프레임 생성
-            // 250818TODO 전송할 CAN 프레임 형식 정의하고 CANFrame.cs 코드 정리
             var frame = new CANFrame
             {
                 Id = _canId,
@@ -217,8 +199,10 @@ namespace PSTARV2MonitoringApp.Models
         /// </summary>
         private void UpdatePressureStatus()
         {
+            if (_model == null) return;
+
             // 펌웨어 main() 함수 상단부의 로직
-            TXLowpress = txLowpress;
+            _model.TXLowpress = _model.TxLowpressInternal;
         }
 
         /// <summary>
@@ -234,15 +218,17 @@ namespace PSTARV2MonitoringApp.Models
         /// </summary>
         private void RunStopProc(bool runStatus)
         {
+            if (_model == null) return;
+
             if (runStatus) // RUN
             {
-                ResetButton = false;
-                StopLamp = false;
+                _model.ResetButton = false;
+                _model.StopLamp = false;
             }
             else // STOP
             {
-                StopLamp = true;
-                RunLamp = false;
+                _model.StopLamp = true;
+                _model.RunLamp = false;
             }
         }
 
@@ -251,10 +237,12 @@ namespace PSTARV2MonitoringApp.Models
         /// </summary>
         private void RunInput()
         {
-            if (RunFB_I) // Run Signal ON & Run Input ON -> Run Lamp ON
+            if (_model == null) return;
+
+            if (_model.RunFB_I) // Run Signal ON & Run Input ON -> Run Lamp ON
             {
-                RunLamp = true;
-                StopLamp = false;
+                _model.RunLamp = true;
+                _model.StopLamp = false;
             }
         }
 
@@ -279,31 +267,33 @@ namespace PSTARV2MonitoringApp.Models
         /// </summary>
         private void OverloadProc(bool overloadStatus)
         {
+            if (_model == null) return;
+
             if (overloadStatus)
             {
-                if (RunStatus)
+                if (_model.RunStatus)
                 {
-                    Stop_Overload = true;
-                    RunStatus = false;
+                    _model.Stop_Overload = true;
+                    _model.RunStatus = false;
                 }
 
-                Overload = true;
-                CountParallelTime_S = 0;
+                _model.Overload = true;
+                _model.CountParallelTime_S = 0;
 
-                ResetButton = false;
+                _model.ResetButton = false;
 
-                if (StandByLamp)
+                if (_model.StandByLamp)
                 {
-                    StandByLamp = false; // Occur Overload -> StandBy x
-                    STBY_Overload = true; // STBY Overload -> Run Request x
+                    _model.StandByLamp = false; // Occur Overload -> StandBy x
+                    _model.STBY_Overload = true; // STBY Overload -> Run Request x
                 }
             }
             else
             {
-                Overload = false;
+                _model.Overload = false;
 
-                STBY_Overload = false;
-                Stop_Overload = false;
+                _model.STBY_Overload = false;
+                _model.Stop_Overload = false;
             }
         }
 
@@ -312,7 +302,10 @@ namespace PSTARV2MonitoringApp.Models
         /// </summary>
         private void LowpressProc(bool lowpressStatus)
         {
+            if (_model == null) return;
+
             // LowpressProc 로직 구현
+            _model.TxLowpressInternal = lowpressStatus;
         }
 
         /// <summary>
@@ -328,16 +321,19 @@ namespace PSTARV2MonitoringApp.Models
         /// </summary>
         private void ReceiveRunReq()
         {
-            if (!Overload && StandByLamp)
+            if (_model == null) return;
+
+            if (!_model.Overload && _model.StandByLamp)
             {
-                if (!Request_Flag && (rx_data1[4] == 1 || rx_data2[4] == 1 || rx_data3[4] == 1))
+                if (!_model.Request_Flag &&
+                    (_model.RX_Data1[4] == 1 || _model.RX_Data2[4] == 1 || _model.RX_Data3[4] == 1))
                 {
-                    Request_Flag = true;
-                    RunStatus = true;
+                    _model.Request_Flag = true;
+                    _model.RunStatus = true;
                 }
-                else if (rx_data1[4] == 0 && rx_data2[4] == 0 && rx_data3[4] == 0)
+                else if (_model.RX_Data1[4] == 0 && _model.RX_Data2[4] == 0 && _model.RX_Data3[4] == 0)
                 {
-                    Request_Flag = false;
+                    _model.Request_Flag = false;
                 }
             }
         }
@@ -355,13 +351,15 @@ namespace PSTARV2MonitoringApp.Models
         /// </summary>
         private void StbyStartAlarm()
         {
-            if (RunLamp && StandByLamp)
+            if (_model == null) return;
+
+            if (_model.RunLamp && _model.StandByLamp)
             {
-                STBY_Start = true;
+                _model.STBY_Start = true;
             }
             else
             {
-                STBY_Start = false;
+                _model.STBY_Start = false;
             }
         }
 
@@ -378,7 +376,18 @@ namespace PSTARV2MonitoringApp.Models
         /// </summary>
         private void StandByLampProc(bool modeStatus)
         {
+            if (_model == null) return;
+
             // StandByLampProc 로직 구현 (매우 복잡한 로직)
+            // 간소화된 버전 구현
+            if (modeStatus) // STBY_MODE
+            {
+                _model.StandByLamp = true;
+            }
+            else // MANUAL_MODE
+            {
+                _model.StandByLamp = false;
+            }
         }
         #endregion
 
@@ -388,13 +397,18 @@ namespace PSTARV2MonitoringApp.Models
         /// </summary>
         public void PressStartButton()
         {
-            if (!Overload)
+            if (_model == null) return;
+
+            if (!_model.Overload)
             {
-                if (!RunStatus)
+                if (!_model.RunStatus)
                 {
-                    if (!ModeStatus) // MANUAL_MODE
+                    if (!_model.ModeStatus) // MANUAL_MODE
                     {
-                        RunStatus = true;
+                        _model.RunStatus = true;
+
+                        // 상태 변경 시 로직 실행
+                        ExecutePumpLogic();
                     }
                 }
             }
@@ -405,8 +419,13 @@ namespace PSTARV2MonitoringApp.Models
         /// </summary>
         public void PressStopButton()
         {
-            RunStatus = false;
-            ResetButton = true;
+            if (_model == null) return;
+
+            _model.RunStatus = false;
+            _model.ResetButton = true;
+
+            // 상태 변경 시 로직 실행
+            ExecutePumpLogic();
         }
 
         /// <summary>
@@ -414,7 +433,12 @@ namespace PSTARV2MonitoringApp.Models
         /// </summary>
         public void PressModeButton()
         {
-            ModeStatus = !ModeStatus;
+            if (_model == null) return;
+
+            _model.ModeStatus = !_model.ModeStatus;
+
+            // 상태 변경 시 로직 실행
+            ExecutePumpLogic();
         }
 
         /// <summary>
@@ -422,7 +446,13 @@ namespace PSTARV2MonitoringApp.Models
         /// </summary>
         public void PressHeatButton()
         {
-            HeatStatus = !HeatStatus;
+            if (_model == null) return;
+
+            _model.HeatStatus = !_model.HeatStatus;
+            _model.IsHeatOn = !_model.IsHeatOn; //Heat 램프 toggle
+
+            // 상태 변경 시 로직 실행
+            ExecutePumpLogic();
         }
 
         /// <summary>
@@ -430,7 +460,12 @@ namespace PSTARV2MonitoringApp.Models
         /// </summary>
         public void SetOverload(bool isOverload)
         {
-            Overload_I = isOverload;
+            if (_model == null) return;
+
+            _model.Overload_I = isOverload;
+
+            // 상태 변경 시 로직 실행
+            ExecutePumpLogic();
         }
 
         /// <summary>
@@ -438,7 +473,12 @@ namespace PSTARV2MonitoringApp.Models
         /// </summary>
         public void SetLowPressure(bool isLowPressure)
         {
-            Lowpress_I = isLowPressure;
+            if (_model == null) return;
+
+            _model.Lowpress_I = isLowPressure;
+
+            // 상태 변경 시 로직 실행
+            ExecutePumpLogic();
         }
 
         /// <summary>
@@ -446,13 +486,15 @@ namespace PSTARV2MonitoringApp.Models
         /// </summary>
         private void NotifyStateChanged()
         {
+            if (_model == null) return;
+
             DeviceStateChanged?.Invoke(this, new DeviceStateChangedEventArgs
             {
                 DeviceId = _deviceId,
-                IsRunning = RunStatus,
-                IsStandByMode = ModeStatus,
-                IsHeating = HeatStatus,
-                IsStandByLamp = StandByLamp
+                IsRunning = _model.RunStatus,
+                IsStandByMode = _model.ModeStatus,
+                IsHeating = _model.HeatStatus,
+                IsStandByLamp = _model.StandByLamp
             });
         }
 
@@ -461,10 +503,14 @@ namespace PSTARV2MonitoringApp.Models
         /// </summary>
         public void Dispose()
         {
-            _logicTimer?.Stop();
             _transmitTimer?.Stop();
-            _logicTimer?.Dispose();
             _transmitTimer?.Dispose();
+
+            // 모델 이벤트 구독 해제
+            if (_model != null)
+            {
+                _model.StateChanged -= OnModelStateChanged;
+            }
         }
         #endregion
     }

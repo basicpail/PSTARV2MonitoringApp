@@ -428,7 +428,7 @@
 
                                 <!-- ON 램프 -->
                                 <StackPanel Orientation="Horizontal" Margin="-10,0">
-                                    <Ellipse x:Name="OnLamp" Style="{StaticResource StatusLamp}"/>
+                                    <Ellipse x:Name="HeatOnLamp" Style="{StaticResource StatusLamp}"/>
                                     <TextBlock Text="ON" Style="{StaticResource BadgeText}"/>
                                 </StackPanel>
 
@@ -453,11 +453,11 @@
 
                                 <StackPanel  VerticalAlignment="Center" Margin="-10,0">
                                     <StackPanel Orientation="Horizontal" >
-                                        <Ellipse x:Name="ManualLamp" Style="{StaticResource StatusLamp}"/>
+                                        <Ellipse x:Name="ManualModeLamp" Style="{StaticResource StatusLamp}"/>
                                         <TextBlock Text="MANUAL" Style="{StaticResource BadgeText}"/>
                                     </StackPanel>
                                     <StackPanel Orientation="Horizontal" >
-                                        <Ellipse x:Name="StbyLamp" Style="{StaticResource StatusLamp}"/>
+                                        <Ellipse x:Name="StandbyModeLamp" Style="{StaticResource StatusLamp}"/>
                                         <TextBlock Text="ST'BY" Style="{StaticResource BadgeText}"/>
                                     </StackPanel>
                                 </StackPanel>

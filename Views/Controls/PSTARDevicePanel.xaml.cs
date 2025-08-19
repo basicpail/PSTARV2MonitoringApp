@@ -97,13 +97,25 @@ namespace PSTARV2MonitoringApp.Views.Controls
                         break;
                     case nameof(PSTARDevicePanelModel.IsStandby):
                         UpdateLamp(StandbyLamp, deviceModel.IsStandby ? YellowBrush : OffBrush);
-                        UpdateLamp(StbyLamp, deviceModel.IsStandby ? WhiteBrush : OffBrush);
                         break;
-                    case nameof(PSTARDevicePanelModel.IsOn):
-                        UpdateLamp(OnLamp, deviceModel.IsOn ? WhiteBrush : OffBrush);
+                    case nameof(PSTARDevicePanelModel.IsHeatOn):
+                        UpdateLamp(HeatOnLamp, deviceModel.IsHeatOn ? WhiteBrush : OffBrush);
+                        break;
+                    case nameof(PSTARDevicePanelModel.IsStandbyMode):
+                        UpdateLamp(ManualModeLamp, deviceModel.IsManualMode ? OffBrush : OffBrush);
+                        UpdateLamp(StandbyModeLamp, deviceModel.IsStandbyMode ? WhiteBrush : OffBrush);
                         break;
                     case nameof(PSTARDevicePanelModel.IsManualMode):
-                        UpdateLamp(ManualLamp, deviceModel.IsManualMode ? WhiteBrush : OffBrush);
+                        if (deviceModel.IsManualMode)
+                        {
+                            UpdateLamp(StandbyModeLamp, OffBrush);
+                            UpdateLamp(ManualModeLamp, WhiteBrush);
+                        }
+                        else
+                        {
+                            UpdateLamp(ManualModeLamp, OffBrush);
+                            UpdateLamp(StandbyModeLamp, WhiteBrush);
+                        }
                         break;
                 }
             });
@@ -117,6 +129,11 @@ namespace PSTARV2MonitoringApp.Views.Controls
             }
         }
 
+        // 이 패널의 장치 ID를 반환하는 메서드
+        public string GetDeviceId()
+        {
+            return ViewModel?.DeviceId;
+        }
         private void UpdateAllLamps()
         {
             var deviceModel = ViewModel?.DeviceModel;
@@ -131,15 +148,9 @@ namespace PSTARV2MonitoringApp.Views.Controls
             UpdateLamp(CommFailureLamp, deviceModel.IsCommFailure ? RedBrush : OffBrush);
             UpdateLamp(LowPressureLamp, deviceModel.IsLowPressure ? YellowBrush : OffBrush);
             UpdateLamp(StandbyLamp, deviceModel.IsStandby ? YellowBrush : OffBrush);
-            UpdateLamp(OnLamp, deviceModel.IsOn ? WhiteBrush : OffBrush);
-            UpdateLamp(ManualLamp, deviceModel.IsManualMode ? WhiteBrush : OffBrush);
-            UpdateLamp(StbyLamp, deviceModel.IsStandby ? WhiteBrush : OffBrush);
-        }
-
-        // 이 패널의 장치 ID를 반환하는 메서드
-        public string GetDeviceId()
-        {
-            return ViewModel?.DeviceId;
+            UpdateLamp(HeatOnLamp, deviceModel.IsHeatOn ? WhiteBrush : OffBrush);
+            UpdateLamp(ManualModeLamp, deviceModel.IsManualMode ? WhiteBrush : OffBrush);
+            UpdateLamp(StandbyModeLamp, deviceModel.IsStandby ? WhiteBrush : OffBrush);
         }
 
         // LP Test 관련 간단한 이벤트 핸들러들 (button에 Command 에 바인딩이 안돼서 이렇게 구현)

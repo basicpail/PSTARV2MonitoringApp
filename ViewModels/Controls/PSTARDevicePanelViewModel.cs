@@ -39,7 +39,7 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
         // PSTAR 펌프 모델 (실제 장치와 동일한 동작)
         private PSTPumpModel _pumpModel;
 
-        // 생성자에서 장치 ID를 받아 초기화
+        // 생성자에서 장치 ID를 받아 초기화 Q) 장치타입은 왜 안받지
         public PSTARDevicePanelViewModel(string deviceId = null)
         {
             DeviceId = deviceId;
@@ -48,12 +48,16 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
 
             if (!string.IsNullOrEmpty(deviceId))
             {
+                // 장치 모델 생성
                 DeviceModel = new PSTARDevicePanelModel(deviceId, "Unknown");
 
                 // PSTAR 펌프 모델 생성 및 이벤트 연결
                 _pumpModel = new PSTPumpModel(deviceId);
                 _pumpModel.CANDataTransmitted += OnPumpCANDataTransmitted;
                 _pumpModel.DeviceStateChanged += OnDeviceStateChanged;
+
+                // 중요: 펌프 모델에 장치 모델 설정
+                _pumpModel.SetModel(DeviceModel);
             }
 
             // CAN 통신 이벤트 구독
@@ -74,6 +78,12 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             if (deviceModel != null)
             {
                 _logService.LogDeviceModelSet(deviceModel.DeviceId, deviceModel.DeviceModel);
+
+                // 펌프 모델에도 새 장치 모델 설정
+                if (_pumpModel != null)
+                {
+                    _pumpModel.SetModel(deviceModel);
+                }
             }
         }
 
@@ -101,6 +111,7 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
         {
             if (DeviceModel == null) return;
 
+            // 속성 업데이트 (자동으로 PSTPumpModel과 연동)
             DeviceModel.IsSourceOn = isSourceOn;
             DeviceModel.IsAbnormal = isAbnormal;
             DeviceModel.IsRunning = isRunning;
@@ -109,24 +120,6 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             DeviceModel.IsCommFailure = isCommFailure;
             DeviceModel.IsLowPressure = isLowPressure;
             DeviceModel.IsStandby = isStandby;
-
-            // PSTAR 펌프 모델도 업데이트
-            if (_pumpModel != null)
-            {
-                _pumpModel.SetOverload(isAbnormal);
-                _pumpModel.SetLowPressure(isLowPressure);
-
-                if (isRunning && !_pumpModel.RunStatus)
-                    _pumpModel.PressStartButton();
-                else if (!isRunning && _pumpModel.RunStatus)
-                    _pumpModel.PressStopButton();
-
-                if (isHeating != _pumpModel.HeatStatus)
-                    _pumpModel.PressHeatButton();
-
-                if (isStandby != _pumpModel.ModeStatus)
-                    _pumpModel.PressModeButton();
-            }
         }
 
         /// <summary>
@@ -157,20 +150,10 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
         /// </summary>
         private void OnDeviceStateChanged(object sender, DeviceStateChangedEventArgs e)
         {
-            if (DeviceModel != null)
-            {
-                // 장치 모델 업데이트
-                DeviceModel.IsRunning = e.IsRunning;
-                DeviceModel.IsManualMode = !e.IsStandByMode;
-                DeviceModel.IsHeating = e.IsHeating;
-                DeviceModel.IsStandby = e.IsStandByLamp;
-                DeviceModel.IsStopped = !e.IsRunning;
-
-                // UI 스레드에서 업데이트
-                Application.Current.Dispatcher.Invoke(() => {
-                    OnPropertyChanged(nameof(DeviceModel));
-                });
-            }
+            // UI 스레드에서 업데이트 (DeviceModel은 자동으로 업데이트됨)
+            Application.Current.Dispatcher.Invoke(() => {
+                OnPropertyChanged(nameof(DeviceModel));
+            });
         }
 
         /// <summary>
@@ -242,10 +225,10 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             // 확인 대화 상자 표시
             var dialog = new ContentDialog
             {
-                Title = $"가열 기능 제어 - {DeviceId}",
+                Title = $"HEAT 기능 제어 - {DeviceId}",
                 Content = DeviceModel.IsHeating ?
-                    $"장치 {DeviceId}의 가열 기능을 비활성화하시겠습니까?" :
-                    $"장치 {DeviceId}의 가열 기능을 활성화하시겠습니까?",
+                    $"장치 {DeviceId}의 HEAT 기능을 비활성화하시겠습니까?" :
+                    $"장치 {DeviceId}의 HEAT 기능을 활성화하시겠습니까?",
                 PrimaryButtonText = "확인",
                 CloseButtonText = "취소"
             };
@@ -257,24 +240,21 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             var result = await dialog.ShowAsync();
             if (result == ContentDialogResult.Primary)
             {
-                // 가열 상태 토글
-                DeviceModel.IsHeating = !DeviceModel.IsHeating;
+                // 펌프 모델을 통해 히팅 버튼 제어
+                if (_pumpModel != null)
+                {
+                    _pumpModel.PressHeatButton();
+                }
 
-                // 가열이 활성화되면 ON 상태로 변경
+                // 로그 기록
                 if (DeviceModel.IsHeating)
                 {
-                    DeviceModel.IsOn = true;
+
                     _logService.LogHeatOn(DeviceId);
                 }
                 else
                 {
                     _logService.LogHeatOff(DeviceId);
-                }
-
-                // PSTAR 펌프 모델 업데이트
-                if (_pumpModel != null)
-                {
-                    _pumpModel.PressHeatButton();
                 }
             }
         }
@@ -306,9 +286,13 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             var result = await dialog.ShowAsync();
             if (result == ContentDialogResult.Primary)
             {
-                // 모드 상태 토글
-                DeviceModel.IsManualMode = !DeviceModel.IsManualMode;
+                // 펌프 모델을 통해 모드 버튼 제어
+                if (_pumpModel != null)
+                {
+                    _pumpModel.PressModeButton();
+                }
 
+                // 로그 기록
                 if (DeviceModel.IsManualMode)
                 {
                     _logService.LogManualMode(DeviceId);
@@ -316,12 +300,6 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
                 else
                 {
                     _logService.LogAutoMode(DeviceId);
-                }
-
-                // PSTAR 펌프 모델 업데이트
-                if (_pumpModel != null)
-                {
-                    _pumpModel.PressModeButton();
                 }
             }
         }
@@ -368,20 +346,13 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             var result = await dialog.ShowAsync();
             if (result == ContentDialogResult.Primary)
             {
-                // 장치 상태 업데이트
-                DeviceModel.IsRunning = true;
-                DeviceModel.IsStopped = false;
-                DeviceModel.IsStandby = false;
-                DeviceModel.IsOn = true;
-                DeviceModel.IsSourceOn = true;
-
-                _logService.LogDeviceStart(DeviceId);
-
-                // PSTAR 펌프 모델 업데이트
+                // 펌프 모델을 통해 시작 버튼 제어
                 if (_pumpModel != null)
                 {
                     _pumpModel.PressStartButton();
                 }
+
+                _logService.LogDeviceStart(DeviceId);
             }
         }
 
@@ -427,18 +398,13 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             var result = await dialog.ShowAsync();
             if (result == ContentDialogResult.Primary)
             {
-                // 장치 상태 업데이트
-                DeviceModel.IsRunning = false;
-                DeviceModel.IsStopped = true;
-                DeviceModel.IsStandby = true;
-
-                _logService.LogDeviceStopReset(DeviceId);
-
-                // PSTAR 펌프 모델 업데이트
+                // 펌프 모델을 통해 정지 버튼 제어
                 if (_pumpModel != null)
                 {
                     _pumpModel.PressStopButton();
                 }
+
+                _logService.LogDeviceStopReset(DeviceId);
             }
         }
 
@@ -467,35 +433,11 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             var result = await dialog.ShowAsync();
             if (result == ContentDialogResult.Primary)
             {
-                // 모든 상태 초기화
-                DeviceModel.IsSourceOn = false;
-                DeviceModel.IsAbnormal = false;
-                DeviceModel.IsRunning = false;
-                DeviceModel.IsStopped = true;
-                DeviceModel.IsHeating = false;
-                DeviceModel.IsCommFailure = false;
-                DeviceModel.IsLowPressure = false;
-                DeviceModel.IsStandby = true;
-                DeviceModel.IsOn = false;
-                DeviceModel.IsManualMode = true;
+                // 장치 상태 초기화
+                //이미 생성자에서 InitializeDefaultValues 호출 되는거 아닌가
+                //DeviceModel.InitializeDefaultValues();
 
                 _logService.LogDeviceReset(DeviceId);
-
-                // PSTAR 펌프 모델 초기화
-                if (_pumpModel != null)
-                {
-                    if (_pumpModel.RunStatus)
-                        _pumpModel.PressStopButton();
-
-                    if (!_pumpModel.ModeStatus)
-                        _pumpModel.PressModeButton(); // STBY 모드로 설정
-
-                    if (_pumpModel.HeatStatus)
-                        _pumpModel.PressHeatButton(); // 히팅 OFF
-
-                    _pumpModel.SetOverload(false);
-                    _pumpModel.SetLowPressure(false);
-                }
             }
         }
 
@@ -553,6 +495,7 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             {
                 _pumpModel.CANDataTransmitted -= OnPumpCANDataTransmitted;
                 _pumpModel.DeviceStateChanged -= OnDeviceStateChanged;
+                _pumpModel.Dispose();
             }
 
             _canService.DataReceived -= OnCANDataReceived;

@@ -139,7 +139,7 @@ namespace PSTARV2MonitoringApp.Services
                 data.IsManualMode = data.ModeStatus;
                 data.IsSourceOn = data.STBY_Start;
                 data.IsStopped = !data.RunLamp;
-                data.IsOn = data.RunLamp || data.StandByLamp;
+                data.IsHeatOn = data.RunLamp || data.StandByLamp;
 
                 // 상태 문자열 변환
                 data.CommStatus = "Connected"; // CAN 데이터를 받고 있으므로 연결됨
@@ -200,8 +200,9 @@ namespace PSTARV2MonitoringApp.Services
                 // 추가적으로 DeviceModel의 다른 속성들도 업데이트
                 if (viewModel.DeviceModel != null)
                 {
-                    viewModel.DeviceModel.IsOn = data.IsOn;
+                    viewModel.DeviceModel.IsHeatOn = data.IsHeatOn;
                     viewModel.DeviceModel.IsManualMode = data.IsManualMode;
+                    viewModel.DeviceModel.IsStandbyMode = data.IsStandbyMode;
                 }
             }
         }
