@@ -49,7 +49,7 @@ namespace PSTARV2MonitoringApp.Views.Controls
             InitializeComponent();
         }
 
-        public void SetDeviceModel(PSTARDevicePanelModel deviceModel)
+        public void SetDeviceModel(PSTARDeviceModel deviceModel)
         {
             if (deviceModel == null) return;
 
@@ -68,44 +68,44 @@ namespace PSTARV2MonitoringApp.Views.Controls
             // UI 스레드에서 실행되도록 보장
             Dispatcher.Invoke(() =>
             {
-                var deviceModel = sender as PSTARDevicePanelModel;
+                var deviceModel = sender as PSTARDeviceModel;
                 if (deviceModel == null) return;
 
                 // 모델 속성이 변경되면 해당 램프만 업데이트
                 switch (e.PropertyName)
                 {
-                    case nameof(PSTARDevicePanelModel.IsSourceOn):
+                    case nameof(PSTARDeviceModel.IsSourceOn):
                         UpdateLamp(SourceLamp, deviceModel.IsSourceOn ? WhiteBrush : OffBrush);
                         break;
-                    case nameof(PSTARDevicePanelModel.IsAbnormal):
+                    case nameof(PSTARDeviceModel.IsAbnormal):
                         UpdateLamp(AbnormalLamp, deviceModel.IsAbnormal ? RedBrush : OffBrush);
                         break;
-                    case nameof(PSTARDevicePanelModel.IsRunning):
+                    case nameof(PSTARDeviceModel.IsRunning):
                         UpdateLamp(RunLamp, deviceModel.IsRunning ? GreenBrush : OffBrush);
                         break;
-                    case nameof(PSTARDevicePanelModel.IsStopped):
+                    case nameof(PSTARDeviceModel.IsStopped):
                         UpdateLamp(StopLamp, deviceModel.IsStopped ? RedBrush : OffBrush);
                         break;
-                    case nameof(PSTARDevicePanelModel.IsHeating):
+                    case nameof(PSTARDeviceModel.IsHeating):
                         UpdateLamp(HeatingLamp, deviceModel.IsHeating ? OrangeBrush : OffBrush);
                         break;
-                    case nameof(PSTARDevicePanelModel.IsCommFailure):
+                    case nameof(PSTARDeviceModel.IsCommFailure):
                         UpdateLamp(CommFailureLamp, deviceModel.IsCommFailure ? RedBrush : OffBrush);
                         break;
-                    case nameof(PSTARDevicePanelModel.IsLowPressure):
+                    case nameof(PSTARDeviceModel.IsLowPressure):
                         UpdateLamp(LowPressureLamp, deviceModel.IsLowPressure ? YellowBrush : OffBrush);
                         break;
-                    case nameof(PSTARDevicePanelModel.IsStandby):
+                    case nameof(PSTARDeviceModel.IsStandby):
                         UpdateLamp(StandbyLamp, deviceModel.IsStandby ? YellowBrush : OffBrush);
                         break;
-                    case nameof(PSTARDevicePanelModel.IsHeatOn):
+                    case nameof(PSTARDeviceModel.IsHeatOn):
                         UpdateLamp(HeatOnLamp, deviceModel.IsHeatOn ? WhiteBrush : OffBrush);
                         break;
-                    case nameof(PSTARDevicePanelModel.IsStandbyMode):
+                    case nameof(PSTARDeviceModel.IsStandbyMode):
                         UpdateLamp(ManualModeLamp, deviceModel.IsManualMode ? OffBrush : OffBrush);
                         UpdateLamp(StandbyModeLamp, deviceModel.IsStandbyMode ? WhiteBrush : OffBrush);
                         break;
-                    case nameof(PSTARDevicePanelModel.IsManualMode):
+                    case nameof(PSTARDeviceModel.IsManualMode):
                         if (deviceModel.IsManualMode)
                         {
                             UpdateLamp(StandbyModeLamp, OffBrush);

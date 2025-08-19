@@ -77,7 +77,6 @@ namespace PSTARV2MonitoringApp.ViewModels.Pages
 
             // CAN 데이터 서비스 등록
             _canDataService.RegisterServices(deviceStatusCardViewModel);
-            _canDataService.RawDataUpdated += OnRawDataUpdated;
 
             // CAN 전송 데이터 구독 (실제 장치가 송신한 데이터)
             _canCommService.DataTransmitted += OnCANDataTransmitted;
@@ -140,13 +139,13 @@ namespace PSTARV2MonitoringApp.ViewModels.Pages
                 };
 
                 // 맨 앞에 추가
-                TestRawDataTimelineItems.Insert(0, rawData);
+                //TestRawDataTimelineItems.Insert(0, rawData);
 
                 // 최대 아이템 수 제한
-                while (TestRawDataTimelineItems.Count > MaxRawDataItems)
-                {
-                    TestRawDataTimelineItems.RemoveAt(TestRawDataTimelineItems.Count - 1);
-                }
+                //while (TestRawDataTimelineItems.Count > MaxRawDataItems)
+                //{
+                //    TestRawDataTimelineItems.RemoveAt(TestRawDataTimelineItems.Count - 1);
+                //}
             });
         }
 

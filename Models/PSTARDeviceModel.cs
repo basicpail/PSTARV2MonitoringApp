@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace PSTARV2MonitoringApp.Models
 {
-    public class PSTARDevicePanelModel : INotifyPropertyChanged
+    public class PSTARDeviceModel : INotifyPropertyChanged
     {
         #region 필드 - 장치 기본 정보
         private string _deviceId;
@@ -580,7 +580,7 @@ namespace PSTARV2MonitoringApp.Models
 
         #region 생성자
         // 초기값 설정을 위한 생성자
-        public PSTARDevicePanelModel()
+        public PSTARDeviceModel()
         {
             // 기본값 설정
             DeviceId = "Unknown";
@@ -589,7 +589,7 @@ namespace PSTARV2MonitoringApp.Models
         }
 
         // 특정 ID와 모델로 초기화하는 생성자
-        public PSTARDevicePanelModel(string deviceId, string deviceModel)
+        public PSTARDeviceModel(string deviceId, string deviceModel)
         {
             DeviceId = deviceId;
             DeviceModel = deviceModel;

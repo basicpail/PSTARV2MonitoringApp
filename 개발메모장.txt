@@ -141,3 +141,10 @@ CAN received는 계속 메시지 받아서 파싱하다가 변경된 데이터�
 ----
 
 StartCANSimulation (DashbaordViewModel) -> StartAsync (CANCommunicationService) -> _canService.ConnectionStatusChanged += OnConnectionStatusChanged; (PSTARDevicePanelViewModel)
+
+
+-----
+
+CANFrame 모델 형식대로 데이터 만들기
+DeviceService에서 CANFrame 송신
+CANDataProcessingService.cs 에서 CANFrame 수신해서 해석하고, 상태 업데이트

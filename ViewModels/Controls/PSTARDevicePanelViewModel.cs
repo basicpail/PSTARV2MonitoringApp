@@ -20,7 +20,7 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
 
         // 이 ViewModel이 관리하는 장치 모델 (단일 장치)
         [ObservableProperty]
-        private PSTARDevicePanelModel _deviceModel;
+        private PSTARDeviceModel _deviceModel;
 
         // LP Test 상태
         [ObservableProperty]
@@ -37,7 +37,7 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
         private readonly CANCommunicationService _canService;
 
         // PSTAR 펌프 모델 (실제 장치와 동일한 동작)
-        private PSTPumpModel _pumpModel;
+        private PSTARDeviceService _deviceService;
 
         // 생성자에서 장치 ID를 받아 초기화 Q) 장치타입은 왜 안받지
         public PSTARDevicePanelViewModel(string deviceId = null)
@@ -49,15 +49,15 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             if (!string.IsNullOrEmpty(deviceId))
             {
                 // 장치 모델 생성
-                DeviceModel = new PSTARDevicePanelModel(deviceId, "Unknown");
+                DeviceModel = new PSTARDeviceModel(deviceId, "Unknown");
 
                 // PSTAR 펌프 모델 생성 및 이벤트 연결
-                _pumpModel = new PSTPumpModel(deviceId);
-                _pumpModel.CANDataTransmitted += OnPumpCANDataTransmitted;
-                _pumpModel.DeviceStateChanged += OnDeviceStateChanged;
+                _deviceService = new PSTARDeviceService(deviceId);
+                _deviceService.CANDataTransmitted += OnPumpCANDataTransmitted;
+                _deviceService.DeviceStateChanged += OnDeviceStateChanged;
 
                 // 중요: 펌프 모델에 장치 모델 설정
-                _pumpModel.SetModel(DeviceModel);
+                _deviceService.SetModel(DeviceModel);
             }
 
             // CAN 통신 이벤트 구독
@@ -69,7 +69,7 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
         /// 장치 모델을 설정합니다.
         /// </summary>
         /// <param name="deviceModel">장치 모델</param>
-        public void SetDeviceModel(PSTARDevicePanelModel deviceModel)
+        public void SetDeviceModel(PSTARDeviceModel deviceModel)
         {
             DeviceModel = deviceModel;
             DeviceId = deviceModel?.DeviceId;
@@ -80,9 +80,9 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
                 _logService.LogDeviceModelSet(deviceModel.DeviceId, deviceModel.DeviceModel);
 
                 // 펌프 모델에도 새 장치 모델 설정
-                if (_pumpModel != null)
+                if (_deviceService != null)
                 {
-                    _pumpModel.SetModel(deviceModel);
+                    _deviceService.SetModel(deviceModel);
                 }
             }
         }
@@ -127,9 +127,9 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
         /// </summary>
         private void OnCANDataReceived(object sender, CANDataReceivedEventArgs e)
         {
-            if (_pumpModel != null)
+            if (_deviceService != null)
             {
-                _pumpModel.ProcessReceivedCANFrame(e.Frame);
+                _deviceService.ProcessReceivedCANFrame(e.Frame);
             }
         }
 
@@ -163,14 +163,14 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
         {
             if (status.Contains("연결됨"))
             {
-                if (_pumpModel != null && !IsCANTransmissionActive)
+                if (_deviceService != null && !IsCANTransmissionActive)
                 {
                     StartCANTransmission();
                 }
             }
             else if (status.Contains("연결 해제") || status.Contains("실패"))
             {
-                if (_pumpModel != null && IsCANTransmissionActive)
+                if (_deviceService != null && IsCANTransmissionActive)
                 {
                     StopCANTransmission();
                 }
@@ -182,10 +182,10 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
         /// </summary>
         public void StartCANTransmission()
         {
-            if (!IsCANTransmissionActive && _pumpModel != null)
+            if (!IsCANTransmissionActive && _deviceService != null)
             {
                 IsCANTransmissionActive = true;
-                _pumpModel.StartSimulation();
+                _deviceService.StartSimulation();
 
                 _logService.AddLog($"ID {DeviceId}", "CAN 데이터 전송 시작");
             }
@@ -196,10 +196,10 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
         /// </summary>
         public void StopCANTransmission()
         {
-            if (IsCANTransmissionActive && _pumpModel != null)
+            if (IsCANTransmissionActive && _deviceService != null)
             {
                 IsCANTransmissionActive = false;
-                _pumpModel.StopSimulation();
+                _deviceService.StopSimulation();
 
                 _logService.AddLog($"ID {DeviceId}", "CAN 데이터 전송 중지");
             }
@@ -241,9 +241,9 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             if (result == ContentDialogResult.Primary)
             {
                 // 펌프 모델을 통해 히팅 버튼 제어
-                if (_pumpModel != null)
+                if (_deviceService != null)
                 {
-                    _pumpModel.PressHeatButton();
+                    _deviceService.PressHeatButton();
                 }
 
                 // 로그 기록
@@ -287,9 +287,9 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             if (result == ContentDialogResult.Primary)
             {
                 // 펌프 모델을 통해 모드 버튼 제어
-                if (_pumpModel != null)
+                if (_deviceService != null)
                 {
-                    _pumpModel.PressModeButton();
+                    _deviceService.PressModeButton();
                 }
 
                 // 로그 기록
@@ -347,9 +347,9 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             if (result == ContentDialogResult.Primary)
             {
                 // 펌프 모델을 통해 시작 버튼 제어
-                if (_pumpModel != null)
+                if (_deviceService != null)
                 {
-                    _pumpModel.PressStartButton();
+                    _deviceService.PressStartButton();
                 }
 
                 _logService.LogDeviceStart(DeviceId);
@@ -399,9 +399,9 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             if (result == ContentDialogResult.Primary)
             {
                 // 펌프 모델을 통해 정지 버튼 제어
-                if (_pumpModel != null)
+                if (_deviceService != null)
                 {
-                    _pumpModel.PressStopButton();
+                    _deviceService.PressStopButton();
                 }
 
                 _logService.LogDeviceStopReset(DeviceId);
@@ -449,9 +449,9 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             _logService.LogLPTestStart(DeviceId);
 
             // PSTAR 펌프 모델 저압 상태 활성화
-            if (_pumpModel != null)
+            if (_deviceService != null)
             {
-                _pumpModel.SetLowPressure(true);
+                _deviceService.SetLowPressure(true);
             }
         }
 
@@ -463,9 +463,9 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             _logService.LogLPTestEnd(DeviceId);
 
             // PSTAR 펌프 모델 저압 상태 비활성화
-            if (_pumpModel != null)
+            if (_deviceService != null)
             {
-                _pumpModel.SetLowPressure(false);
+                _deviceService.SetLowPressure(false);
             }
         }
 
@@ -491,11 +491,11 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             StopCANTransmission();
 
             // 이벤트 구독 해제
-            if (_pumpModel != null)
+            if (_deviceService != null)
             {
-                _pumpModel.CANDataTransmitted -= OnPumpCANDataTransmitted;
-                _pumpModel.DeviceStateChanged -= OnDeviceStateChanged;
-                _pumpModel.Dispose();
+                _deviceService.CANDataTransmitted -= OnPumpCANDataTransmitted;
+                _deviceService.DeviceStateChanged -= OnDeviceStateChanged;
+                _deviceService.Dispose();
             }
 
             _canService.DataReceived -= OnCANDataReceived;

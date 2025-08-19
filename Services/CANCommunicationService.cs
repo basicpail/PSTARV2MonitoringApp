@@ -29,6 +29,9 @@ namespace PSTARV2MonitoringApp.Services
         // 송신 이벤트 추가
         public event EventHandler<CANTransmitEventArgs> DataTransmitted;
 
+        private readonly Queue<CANFrame> _transmittedFrames = new Queue<CANFrame>(10); // 최대 10개 프레임 저장
+private readonly object _queueLock = new object();
+
         public CANSettings Settings => _settings ??= new CANSettings();
         public bool IsConnected => _settings?.IsConnected ?? false;
 
@@ -341,28 +344,45 @@ namespace PSTARV2MonitoringApp.Services
         /// </summary>
         private async Task<CANFrame> ReceiveTestFrame(CancellationToken cancellationToken)
         {
-            await Task.Delay(1000, cancellationToken); // 1초마다 테스트 데이터 생성
-            
-            var random = new Random();
-            
-            // 실제 데이터 형식에 맞는 테스트 데이터 생성
-            var data = new byte[8];
-            data[0] = (byte)(random.Next(2)); // STBY_Start (0 or 1)
-            data[1] = (byte)(random.Next(2)); // RunLamp (0 or 1)
-            data[2] = (byte)(random.Next(2)); // Overload (0 or 1)
-            data[3] = (byte)(random.Next(2)); // ModeStatus (0 or 1)
-            data[4] = (byte)(random.Next(2)); // RUN_req (0 or 1)
-            data[5] = (byte)(random.Next(2)); // ResetButton (0 or 1)
-            data[6] = (byte)(random.Next(2)); // StandByLamp (0 or 1)
-            data[7] = (byte)(random.Next(2)); // TXLowpress (0 or 1)
-            
-            return new CANFrame
+            // 큐에 저장된 프레임이 있으면 가져오기
+            CANFrame frame = null;
+
+            lock (_queueLock)
             {
-                Id = Settings.DeviceBaseId + (uint)random.Next(3), // 0x100, 0x101, 0x102
-                Data = data,
-                Timestamp = DateTime.Now,
-                IsExtended = false
-            };
+                if (_transmittedFrames.Count > 0)
+                {
+                    frame = _transmittedFrames.Dequeue();
+                    Debug.WriteLine($"테스트 프레임 수신: ID=0x{frame.Id:X3}, Data={frame.DataAsHex}");
+                }
+            }
+
+            // 지연 시간 조정 (원활한 테스트를 위해 짧게 설정)
+            await Task.Delay(1000, cancellationToken);
+
+            return frame; // 큐에 프레임이 없으면 null 반환
+
+            //await Task.Delay(1000, cancellationToken); // 1초마다 테스트 데이터 생성
+            
+            //var random = new Random();
+            
+            //// 실제 데이터 형식에 맞는 테스트 데이터 생성
+            //var data = new byte[8];
+            //data[0] = (byte)(random.Next(2)); // STBY_Start (0 or 1)
+            //data[1] = (byte)(random.Next(2)); // RunLamp (0 or 1)
+            //data[2] = (byte)(random.Next(2)); // Overload (0 or 1)
+            //data[3] = (byte)(random.Next(2)); // ModeStatus (0 or 1)
+            //data[4] = (byte)(random.Next(2)); // RUN_req (0 or 1)
+            //data[5] = (byte)(random.Next(2)); // ResetButton (0 or 1)
+            //data[6] = (byte)(random.Next(2)); // StandByLamp (0 or 1)
+            //data[7] = (byte)(random.Next(2)); // TXLowpress (0 or 1)
+            
+            //return new CANFrame
+            //{
+            //    Id = Settings.DeviceBaseId + (uint)random.Next(3), // 0x100, 0x101, 0x102
+            //    Data = data,
+            //    Timestamp = DateTime.Now,
+            //    IsExtended = false
+            //};
         }
 
         /// <summary>
@@ -376,7 +396,27 @@ namespace PSTARV2MonitoringApp.Services
             {
                 // 송신 이벤트 발생 (추가된 부분)
                 DataTransmitted?.Invoke(this, new CANTransmitEventArgs(frame));
-                
+
+                // 전송된 프레임을 큐에 저장 (테스트 모드용)
+                if (Settings.InterfaceType.ToUpper() == "TEST")
+                {
+                    lock (_queueLock)
+                    {
+                        // 큐 크기 제한
+                        if (_transmittedFrames.Count >= 10)
+                            _transmittedFrames.Dequeue();
+
+                        // 새 프레임 추가
+                        _transmittedFrames.Enqueue(new CANFrame
+                        {
+                            Id = frame.Id,
+                            Data = frame.Data.ToArray(), // 데이터 복사
+                            Timestamp = DateTime.Now,
+                            IsExtended = frame.IsExtended
+                        });
+                    }
+                }
+
                 // 모든 CAN 데이터 이벤트 발생 (추가된 부분)
                 AllCANDataReceived?.Invoke(this, new CANDataReceivedEventArgs(frame));
                 

@@ -1,14 +1,14 @@
 using System;
 using System.Timers;
-using PSTARV2MonitoringApp.Services;
+using PSTARV2MonitoringApp.Models;
 using Timer = System.Timers.Timer;
 
-namespace PSTARV2MonitoringApp.Models
+namespace PSTARV2MonitoringApp.Services
 {
     /// <summary>
     /// 실제 펌웨어 로직을 구현한 PSTAR 펌프 모델
     /// </summary>
-    public class PSTPumpModel : IDisposable
+    public class PSTARDeviceService : IDisposable
     {
         #region 변수
         // 장치 ID와 CAN ID
@@ -19,7 +19,7 @@ namespace PSTARV2MonitoringApp.Models
         private readonly Timer _transmitTimer;
 
         // 모델 레퍼런스 (장치 모델 공유)
-        private PSTARDevicePanelModel _model;
+        private PSTARDeviceModel _model;
         #endregion
 
         #region 이벤트
@@ -48,7 +48,7 @@ namespace PSTARV2MonitoringApp.Models
         /// <summary>
         /// 생성자
         /// </summary>
-        public PSTPumpModel(string deviceId)
+        public PSTARDeviceService(string deviceId)
         {
             _deviceId = deviceId;
 
@@ -70,7 +70,7 @@ namespace PSTARV2MonitoringApp.Models
         /// <summary>
         /// 장치 모델 설정
         /// </summary>
-        public void SetModel(PSTARDevicePanelModel model)
+        public void SetModel(PSTARDeviceModel model)
         {
             // 기존 모델 이벤트 구독 해제
             if (_model != null)
@@ -380,14 +380,14 @@ namespace PSTARV2MonitoringApp.Models
 
             // StandByLampProc 로직 구현 (매우 복잡한 로직)
             // 간소화된 버전 구현
-            if (modeStatus) // STBY_MODE
-            {
-                _model.StandByLamp = true;
-            }
-            else // MANUAL_MODE
-            {
-                _model.StandByLamp = false;
-            }
+            //if (modeStatus) // STBY_MODE
+            //{
+            //    _model.StandByLamp = true;
+            //}
+            //else // MANUAL_MODE
+            //{
+            //    _model.StandByLamp = false;
+            //}
         }
         #endregion
 
@@ -435,7 +435,8 @@ namespace PSTARV2MonitoringApp.Models
         {
             if (_model == null) return;
 
-            _model.ModeStatus = !_model.ModeStatus;
+            //_model.ModeStatus = !_model.ModeStatus;
+            _model.IsManualMode = !_model.IsManualMode; // Manual 램프 toggle
 
             // 상태 변경 시 로직 실행
             ExecutePumpLogic();
@@ -490,11 +491,12 @@ namespace PSTARV2MonitoringApp.Models
 
             DeviceStateChanged?.Invoke(this, new DeviceStateChangedEventArgs
             {
-                DeviceId = _deviceId,
-                IsRunning = _model.RunStatus,
-                IsStandByMode = _model.ModeStatus,
-                IsHeating = _model.HeatStatus,
-                IsStandByLamp = _model.StandByLamp
+                //TODO실제 장치 동작 로직에 맞춰서 수정해야한디
+                //DeviceId = _deviceId,
+                //IsRunning = _model.RunStatus,
+                //IsStandByMode = _model.ModeStatus,
+                //IsHeating = _model.HeatStatus,
+                //IsStandByLamp = _model.StandByLamp
             });
         }
 

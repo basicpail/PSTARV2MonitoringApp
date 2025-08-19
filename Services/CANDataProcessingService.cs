@@ -162,23 +162,33 @@ namespace PSTARV2MonitoringApp.Services
 
             var deviceInfo = DeviceInfo.GetDeviceIdById(data.DeviceId);
             var statusCardId = deviceInfo?.StatusCardId;
-            
+
             if (string.IsNullOrEmpty(statusCardId)) return;
 
-            var cardModel = new DeviceStatusCardModel
+            // 장치 패널 모델을 찾아서 상태 카드 업데이트
+            if (_devicePanelViewModels.TryGetValue(data.DeviceId, out var viewModel) &&
+                viewModel.DeviceModel != null)
             {
-                DeviceId = statusCardId,
-                CommStatus = data.CommStatus,
-                RunStatus = data.RunStatus,
-                RunMode = data.RunMode,
-                StandByStatus = data.StandByStatus,
-                OverloadStatus = data.OverloadStatus,
-                LowPressureStatus = data.LowPressureStatus
-            };
+                // PSTARDeviceModel 데이터를 사용하여 상태 카드 업데이트
+                _deviceStatusCardViewModel.UpdateFromDeviceModel(statusCardId, viewModel.DeviceModel);
+            }
+            else
+            {
+                // 장치 패널 모델을 찾을 수 없는 경우 CAN 데이터로 직접 업데이트
+                var cardModel = new DeviceStatusCardModel
+                {
+                    DeviceId = statusCardId,
+                    CommStatus = data.CommStatus,
+                    RunStatus = data.RunStatus,
+                    RunMode = data.RunMode,
+                    StandByStatus = data.StandByStatus,
+                    OverloadStatus = data.OverloadStatus,
+                    LowPressureStatus = data.LowPressureStatus
+                };
 
-            _deviceStatusCardViewModel.AddDeviceStatusCard(cardModel);
+                _deviceStatusCardViewModel.AddDeviceStatusCard(cardModel);
+            }
         }
-
         /// <summary>
         /// PSTARDevicePanel 업데이트
         /// </summary>

@@ -364,14 +364,6 @@
                     BorderBrush="#117A8B"
                     Margin="0,0,10,0"
                     ToolTip="CAN 통신 설정"/>
-                
-                <ui:Button 
-                    Content="카드 상태 테스트" 
-                    Command="{Binding DeviceStatusCardViewModel.UpdateRandomDeviceStatusCommand}"
-                    Background="#212121"
-                    Foreground="#F3F3F3"
-                    BorderBrush="#33334D"
-                    Margin="0,0,10,0"/>
             </StackPanel>
         </Grid>
         
