@@ -30,7 +30,7 @@ namespace PSTARV2MonitoringApp.Services
         public event EventHandler<CANTransmitEventArgs> DataTransmitted;
 
         private readonly Queue<CANFrame> _transmittedFrames = new Queue<CANFrame>(10); // 최대 10개 프레임 저장
-private readonly object _queueLock = new object();
+        private readonly object _queueLock = new object();
 
         public CANSettings Settings => _settings ??= new CANSettings();
         public bool IsConnected => _settings?.IsConnected ?? false;
@@ -248,6 +248,7 @@ private readonly object _queueLock = new object();
                     
                     if (canFrame != null)
                     {
+                        Console.WriteLine($"수신된 CAN 프레임: ID=0x{canFrame.Id:X3}, Data={BitConverter.ToString(canFrame.Data).Replace("-", " ")}");
                         // 수신된 데이터를 이벤트로 전달
                         DataReceived?.Invoke(this, new CANDataReceivedEventArgs(canFrame));
                     }
@@ -349,18 +350,18 @@ private readonly object _queueLock = new object();
 
             lock (_queueLock)
             {
+                //while (_transmittedFrames.Count > 0)
                 if (_transmittedFrames.Count > 0)
                 {
                     frame = _transmittedFrames.Dequeue();
                     Debug.WriteLine($"테스트 프레임 수신: ID=0x{frame.Id:X3}, Data={frame.DataAsHex}");
                 }
             }
-
-            // 지연 시간 조정 (원활한 테스트를 위해 짧게 설정)
-            await Task.Delay(1000, cancellationToken);
+            //TODO 수신한 데이터 프레임 Dequeue 주기 -> 일단 100ms로 설정해 놨지만 더 처리 방법이 있을 것이다.
+            //단순히 주기적으로 처리하도록 하면, 타이밍 문제가 생김.
+            await Task.Delay(100, cancellationToken);
 
             return frame; // 큐에 프레임이 없으면 null 반환
-
             //await Task.Delay(1000, cancellationToken); // 1초마다 테스트 데이터 생성
             
             //var random = new Random();

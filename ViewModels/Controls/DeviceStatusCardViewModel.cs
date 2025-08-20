@@ -109,9 +109,9 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
                 CommStatus = deviceModel.IsCommFailure ? "Disconnected" : "Connected",
                 RunStatus = deviceModel.IsRunning ? "Running" : "Stopped",
                 RunMode = deviceModel.IsManualMode ? "Manual" : "StandBy",
-                StandByStatus = deviceModel.IsStandby ? "Standby" : "Ready",
-                OverloadStatus = deviceModel.IsAbnormal ? "Warning" : "Normal",
-                LowPressureStatus = deviceModel.IsLowPressure ? "Low" : "Normal"
+                StandByStatus = deviceModel.IsStandby ? "StandbyStart" : "Standby", //StandbyStart가 아닌 상태를 뭐라고 해야하지
+                OverloadStatus = deviceModel.IsAbnormal ? "Abnormal" : "Normal",
+                LowPressureStatus = deviceModel.IsLowPressure ? "LowPressure" : "Normal"
             };
 
             AddDeviceStatusCard(cardModel);

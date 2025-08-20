@@ -142,9 +142,25 @@ CAN received는 계속 메시지 받아서 파싱하다가 변경된 데이터�
 
 StartCANSimulation (DashbaordViewModel) -> StartAsync (CANCommunicationService) -> _canService.ConnectionStatusChanged += OnConnectionStatusChanged; (PSTARDevicePanelViewModel)
 
+----
+console로 확인해보면 장치 ID 별로 송신 주기 다르게 나온다.
+-> ReceiveTestFrame의 코드를 보면 지연시간이 있다. 나중에 더 효율적으로 수정 필요
 
------
+250820 TODO
+PSTARDeviceService의 상세 로직 구현
+-> 버튼 클릭 처리
+	Mode를 StandBy 상태로 두면 STOP에서 START로 안넘어감
+-> Lamp 점등 처리
+-> 실제 장치 동작 로직 구현
+	일단 StandByLampProc, ConnectFunction 간소화 구현했지만 동작 확인은 제대로 못했다. 나머지 함수들도 확인해봐야 함.
+	각종 타이머 값들 카운트하는 로직 추가해야함!
+-> CAN Frame 생성 처리 (Frame이 한 주기에 두개 씩 들어오는데?)
 
-CANFrame 모델 형식대로 데이터 만들기
-DeviceService에서 CANFrame 송신
-CANDataProcessingService.cs 에서 CANFrame 수신해서 해석하고, 상태 업데이트
+DeviceStatusCard 데이터 연동
+-> CANDataProcessingService로 부터 받은 데이터로 Card 업데이트
+
+250821 TODO
+이상상황 발생 UI/로직 구현
+CANCommunicationService의 ReceiveTestFrame 수정
+DashboardPage 디자인 수정
+실물 PSTAR 셋팅하기, CAN 컨버터 확보

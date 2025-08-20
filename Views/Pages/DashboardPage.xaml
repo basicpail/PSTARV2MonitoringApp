@@ -339,7 +339,7 @@
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,10">
                 <!-- CAN 시뮬레이션 제어 버튼들 -->
                 <ui:Button 
-                    Content="CAN 시뮬레이션 시작"
+                    Content="CAN 데이터 송수신 시작"
                     Command="{Binding ViewModel.StartCANSimulationCommand}"
                     Background="#29A745"
                     Foreground="#F3F3F3"
@@ -348,7 +348,7 @@
                     ToolTip="가상 CAN 데이터 송수신 시작"/>
                 
                 <ui:Button 
-                    Content="CAN 시뮬레이션 중지"
+                    Content="CAN 데이터 송수신 중지"
                     Command="{Binding ViewModel.StopCANSimulationCommand}"
                     Background="#E23B3B"
                     Foreground="#F3F3F3"

@@ -70,6 +70,8 @@ namespace PSTARV2MonitoringApp.Models
         private int _countParaStart = 0;       // Parallel 시작 플래그
         private int _buildUpTime = 5;          // BuildUp 시간 (초)
         private int _parallelTime = 10;        // Parallel 시간 (초)
+        private int _countSeqTime_S = 0;       // 시퀀셜 시간 카운터 (초)
+        
 
         // 연결 상태
         private int _comStatus = 0;            // 0: NoConnection, 1: StandBy_3to2, 2: StandBy_2, 3: StandBy_3
@@ -79,6 +81,20 @@ namespace PSTARV2MonitoringApp.Models
         private byte[] _rx_data1 = new byte[8];  // ID 1 수신 데이터
         private byte[] _rx_data2 = new byte[8];  // ID 2 수신 데이터
         private byte[] _rx_data3 = new byte[8];  // ID 3 수신 데이터
+
+        // 추가된 상태 변수 (PSTARFW.c 기반)
+        private bool _oldLowpress = false;      // 이전 저압 상태
+        private bool _oldRunStatus = false;     // 이전 실행 상태
+        private int _countBuildUpTime = 0;      // BuildUp 시간 설정 (초)
+        private int _countHeatingOnTime_S = 0;  // 가열 시간 카운터 (초)
+        private int _heatingOnTime = 3;         // 가열 시간 설정 (초)
+        private int _countRunReq_S = 0;         // 실행 요청 카운터 (초)
+        private int _countComFault1_S = 0;      // 통신 오류 카운터 1 (초)
+        private int _countComFault2_S = 0;      // 통신 오류 카운터 2 (초)
+        private int _countComFault3_S = 0;      // 통신 오류 카운터 3 (초)
+        private int _countComInit = 0;          // 통신 초기화 카운터
+        private bool _standBy_3_1RUN_Flag = false; // 3-1 RUN 플래그
+        private bool _countOverload_Flag = false; // 과부하 카운터 플래그
         #endregion
 
         #region 속성 - 장치 기본 정보
@@ -558,6 +574,85 @@ namespace PSTARV2MonitoringApp.Models
             get => _rx_data3;
             set => SetProperty(ref _rx_data3, value);
         }
+
+        // 추가된 속성 (PSTARFW.c 기반)
+        public bool OldLowpress
+        {
+            get => _oldLowpress;
+            set => SetProperty(ref _oldLowpress, value);
+        }
+
+        public bool OldRunStatus
+        {
+            get => _oldRunStatus;
+            set => SetProperty(ref _oldRunStatus, value);
+        }
+
+        public int CountBuildUpTime
+        {
+            get => _countBuildUpTime;
+            set => SetProperty(ref _countBuildUpTime, value);
+        }
+
+        public int CountHeatingOnTime_S
+        {
+            get => _countHeatingOnTime_S;
+            set => SetProperty(ref _countHeatingOnTime_S, value);
+        }
+
+        public int HeatingOnTime
+        {
+            get => _heatingOnTime;
+            set => SetProperty(ref _heatingOnTime, value);
+        }
+
+        public int CountRunReq_S
+        {
+            get => _countRunReq_S;
+            set => SetProperty(ref _countRunReq_S, value);
+        }
+
+        public int CountComFault1_S
+        {
+            get => _countComFault1_S;
+            set => SetProperty(ref _countComFault1_S, value);
+        }
+
+        public int CountComFault2_S
+        {
+            get => _countComFault2_S;
+            set => SetProperty(ref _countComFault2_S, value);
+        }
+
+        public int CountComFault3_S
+        {
+            get => _countComFault3_S;
+            set => SetProperty(ref _countComFault3_S, value);
+        }
+
+        public int CountComInit
+        {
+            get => _countComInit;
+            set => SetProperty(ref _countComInit, value);
+        }
+
+        public bool StandBy_3_1RUN_Flag
+        {
+            get => _standBy_3_1RUN_Flag;
+            set => SetProperty(ref _standBy_3_1RUN_Flag, value);
+        }
+
+        public int CountSeqTime_S
+        {
+            get => _countSeqTime_S;
+            set => SetProperty(ref _countSeqTime_S, value);
+        }
+
+        public bool CountOverload_Flag
+        {
+            get => _countOverload_Flag;
+            set => SetProperty(ref _countOverload_Flag, value);
+        }
         #endregion
 
         #region 추가 속성 - UI 표시용
@@ -612,7 +707,7 @@ namespace PSTARV2MonitoringApp.Models
             IsStandbyMode = false;
             IsManualMode = true;
 
-            // PSTPump 상태 초기화
+            // PSTAR 상태 초기화
             RunStatus = false;
             HeatStatus = false;
             ModeStatus = false;
@@ -642,6 +737,7 @@ namespace PSTARV2MonitoringApp.Models
             Error_Flag3 = false;
             InitFlag = false;
             ComStatus_Flag = false;
+            CountOverload_Flag = false;
 
             // 타이머 변수 초기화
             CountBuildUpTime_S = 0;
@@ -656,6 +752,20 @@ namespace PSTARV2MonitoringApp.Models
 
             // 기타 초기화
             STBY_Start_String = "OFF";
+
+            // DeviceService 를 위한 추가 속성 초기화
+            OldLowpress = false;
+            OldRunStatus = false;
+            CountBuildUpTime = 0;
+            CountHeatingOnTime_S = 0;
+            HeatingOnTime = 3;
+            CountRunReq_S = 0;
+            CountComFault1_S = 0;
+            CountComFault2_S = 0;
+            CountComFault3_S = 0;
+            CountComInit = 0;
+            StandBy_3_1RUN_Flag = false;
+            CountSeqTime_S = 0; // 시퀀스 시간 카운터 초기화
         }
         #endregion
 

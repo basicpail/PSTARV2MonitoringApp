@@ -51,9 +51,9 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
                 // 장치 모델 생성
                 DeviceModel = new PSTARDeviceModel(deviceId, "Unknown");
 
-                // PSTAR 펌프 모델 생성 및 이벤트 연결
+                // PSTAR 모델 생성 및 이벤트 연결
                 _deviceService = new PSTARDeviceService(deviceId);
-                _deviceService.CANDataTransmitted += OnPumpCANDataTransmitted;
+                _deviceService.CANDataTransmitted += OnPumpCANDataTransmitted; //DeviceService에서 TransmitCANData 호출 시 이벤트 발생
                 _deviceService.DeviceStateChanged += OnDeviceStateChanged;
 
                 // 중요: 펌프 모델에 장치 모델 설정
@@ -447,12 +447,6 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
         {
             IsLPTestActive = true;
             _logService.LogLPTestStart(DeviceId);
-
-            // PSTAR 펌프 모델 저압 상태 활성화
-            if (_deviceService != null)
-            {
-                _deviceService.SetLowPressure(true);
-            }
         }
 
         // LP Test 종료 (마우스 업 또는 마우스 벗어날 때)
@@ -461,12 +455,6 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
         {
             IsLPTestActive = false;
             _logService.LogLPTestEnd(DeviceId);
-
-            // PSTAR 펌프 모델 저압 상태 비활성화
-            if (_deviceService != null)
-            {
-                _deviceService.SetLowPressure(false);
-            }
         }
 
         private async Task ShowErrorDialog(string message)
@@ -501,7 +489,6 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             _canService.DataReceived -= OnCANDataReceived;
             _canService.ConnectionStatusChanged -= OnConnectionStatusChanged;
         }
-
         #endregion
     }
 }
