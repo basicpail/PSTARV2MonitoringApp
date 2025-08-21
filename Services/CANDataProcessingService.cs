@@ -1,5 +1,6 @@
 using PSTARV2MonitoringApp.Models;
 using PSTARV2MonitoringApp.ViewModels.Controls;
+using PSTARV2MonitoringApp.ViewModels.Pages;  // TestViewModel 추가
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,14 +21,13 @@ namespace PSTARV2MonitoringApp.Services
 
         // 각 서비스 참조
         private DeviceStatusCardViewModel _deviceStatusCardViewModel;
-        private readonly Dictionary<string, PSTARDevicePanelViewModel> _devicePanelViewModels;
+        private TestViewModel _testViewModel; // TestViewModel 참조 추가
 
         private CANDataProcessingService()
         {
             _canService = CANCommunicationService.Instance;
             _logService = DeviceLogService.Instance;
-            _devicePanelViewModels = new Dictionary<string, PSTARDevicePanelViewModel>();
-            
+
             // CAN ID와 장치 ID 매핑
             _deviceIdMapping = new Dictionary<uint, string>
             {
@@ -50,19 +50,11 @@ namespace PSTARV2MonitoringApp.Services
         }
 
         /// <summary>
-        /// 장치 패널 ViewModel 등록
+        /// TestViewModel 참조 등록
         /// </summary>
-        public void RegisterDevicePanel(string deviceId, PSTARDevicePanelViewModel viewModel)
+        public void RegisterTestViewModel(TestViewModel testViewModel)
         {
-            _devicePanelViewModels[deviceId] = viewModel;
-        }
-
-        /// <summary>
-        /// 장치 패널 ViewModel 등록 해제
-        /// </summary>
-        public void UnregisterDevicePanel(string deviceId)
-        {
-            _devicePanelViewModels.Remove(deviceId);
+            _testViewModel = testViewModel;
         }
 
         /// <summary>
@@ -73,7 +65,7 @@ namespace PSTARV2MonitoringApp.Services
             try
             {
                 var frame = e.Frame;
-                
+
                 // CAN ID로 장치 식별
                 if (!_deviceIdMapping.TryGetValue(frame.Id, out var deviceId))
                 {
@@ -84,12 +76,12 @@ namespace PSTARV2MonitoringApp.Services
 
                 // CAN 데이터 해석
                 var deviceData = ParseCANData(deviceId, frame);
-                
+
                 // 각 컴포넌트 업데이트
                 UpdateDeviceStatusCard(deviceData);
                 UpdateDevicePanel(deviceData);
                 UpdateRawData(deviceData);
-                
+
                 // 로그 기록
                 LogDataChanges(deviceData);
             }
@@ -165,9 +157,10 @@ namespace PSTARV2MonitoringApp.Services
 
             if (string.IsNullOrEmpty(statusCardId)) return;
 
-            // 장치 패널 모델을 찾아서 상태 카드 업데이트
-            if (_devicePanelViewModels.TryGetValue(data.DeviceId, out var viewModel) &&
-                viewModel.DeviceModel != null)
+            // TestViewModel을 통해 장치 패널 모델 찾기
+            var viewModel = _testViewModel?.GetDeviceViewModel(data.DeviceId);
+
+            if (viewModel != null && viewModel.DeviceModel != null)
             {
                 // PSTARDeviceModel 데이터를 사용하여 상태 카드 업데이트
                 _deviceStatusCardViewModel.UpdateFromDeviceModel(statusCardId, viewModel.DeviceModel);
@@ -189,12 +182,16 @@ namespace PSTARV2MonitoringApp.Services
                 _deviceStatusCardViewModel.AddDeviceStatusCard(cardModel);
             }
         }
+
         /// <summary>
         /// PSTARDevicePanel 업데이트
         /// </summary>
         private void UpdateDevicePanel(DeviceCANData data)
         {
-            if (_devicePanelViewModels.TryGetValue(data.DeviceId, out var viewModel))
+            // TestViewModel을 통해 장치 패널 모델 찾기
+            var viewModel = _testViewModel?.GetDeviceViewModel(data.DeviceId);
+
+            if (viewModel != null)
             {
                 viewModel.UpdateDeviceState(
                     isSourceOn: data.IsSourceOn,

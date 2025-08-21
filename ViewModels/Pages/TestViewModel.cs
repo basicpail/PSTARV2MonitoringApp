@@ -111,6 +111,36 @@ namespace PSTARV2MonitoringApp.ViewModels.Pages
             }
         }
 
+        /// <summary>
+        /// 모든 장치를 제거합니다.
+        /// </summary>
+        [RelayCommand]
+        public void ClearAllDevices()
+        {
+            var deviceIds = new List<string>(_deviceViewModels.Keys);
+            foreach (var deviceId in deviceIds)
+            {
+                RemoveDevice(deviceId);
+            }
+
+            MessageBox.Show("모든 장치가 제거되었습니다.", "완료",
+                System.Windows.MessageBoxButton.OK, MessageBoxImage.Information);
+
+            _logService.LogAllDevicesRemoved();
+        }
+
+        /// <summary>
+        /// 로그 초기화
+        /// </summary>
+        [RelayCommand]
+        public void ClearLogs()
+        {
+            _logService.ClearLogs();
+            _logService.LogCleared();
+            MessageBox.Show("로그가 초기화되었습니다.", "완료",
+                System.Windows.MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
         private void AddDevicePanelToCard(DeviceId deviceId, DeviceModel deviceModel)
         {
             // 이미 등록된 장치인지 확인
@@ -153,7 +183,10 @@ namespace PSTARV2MonitoringApp.ViewModels.Pages
 
                 // 새 PSTARDevicePanel 생성 (독립적인 ViewModel 사용)
                 var devicePanel = new PSTARDevicePanel(deviceId.Id);
+                // 새 PSTARDevicePanel 생성 (ViewModel 주입)
+                //var devicePanel = new PSTARDevicePanel(deviceId.Id, deviceViewModel);
                 devicePanel.SetDeviceModel(devicePanelModel);
+                RegisterDevicePanelEvents(devicePanel);
 
                 // 딕셔너리에 저장
                 _deviceViewModels[deviceId.Id] = deviceViewModel;
@@ -250,34 +283,23 @@ namespace PSTARV2MonitoringApp.ViewModels.Pages
             viewModel?.UpdateDeviceFromCardModel(cardModel);
         }
 
-        /// <summary>
-        /// 모든 장치를 제거합니다.
-        /// </summary>
-        [RelayCommand]
-        public void ClearAllDevices()
+        // PSTARDevicePanel이 생성될 때 삭제 이벤트를 연결합니다
+        private void RegisterDevicePanelEvents(PSTARDevicePanel panel)
         {
-            var deviceIds = new List<string>(_deviceViewModels.Keys);
-            foreach (var deviceId in deviceIds)
+            if (panel != null && panel.ViewModel != null)
             {
-                RemoveDevice(deviceId);
+                panel.ViewModel.DeviceDeleted += OnDeviceDeleted;
             }
-
-            MessageBox.Show("모든 장치가 제거되었습니다.", "완료",
-                System.Windows.MessageBoxButton.OK, MessageBoxImage.Information);
-            
-            _logService.LogAllDevicesRemoved();
         }
 
-        /// <summary>
-        /// 로그 초기화
-        /// </summary>
-        [RelayCommand]
-        public void ClearLogs()
+        // 장치 삭제 이벤트 처리 메서드
+        private void OnDeviceDeleted(object sender, DeviceDeletedEventArgs e)
         {
-            _logService.ClearLogs();
-            _logService.LogCleared();
-            MessageBox.Show("로그가 초기화되었습니다.", "완료",
-                System.Windows.MessageBoxButton.OK, MessageBoxImage.Information);
+            if (!string.IsNullOrEmpty(e.DeviceId))
+            {
+                RemoveDevice(e.DeviceId);
+            }
         }
+
     }
 }

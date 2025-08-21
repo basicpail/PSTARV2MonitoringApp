@@ -55,7 +55,7 @@ namespace PSTARV2MonitoringApp.Models
             public const string HeatOn = "가열 기능 활성화";
             public const string HeatOff = "가열 기능 비활성화";
             public const string ManualMode = "수동 모드로 전환";
-            public const string AutoMode = "자동 모드로 전환";
+            public const string AutoMode = "STAND BY 모드로 전환";
         }
         #endregion
 

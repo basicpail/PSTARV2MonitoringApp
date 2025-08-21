@@ -272,30 +272,65 @@
 
     <!-- 유연한 크기 조정이 가능한 컨테이너 -->
     <Viewbox Stretch="Uniform" StretchDirection="DownOnly">
-        <Border Width="420" Height="730" Background="{StaticResource ClrBgDeepGreen}">
+        <Border Width="420" Height="800" Background="{StaticResource ClrBgDeepGreen}">
             <Grid Margin="18">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="14"/>
+                    <!-- 헤더 및 버튼 영역 -->
+                    <RowDefinition Height="40"/>
+                    <!-- 간격 증가 -->
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="12"/>
+                    <!-- 상태 램프 영역 -->
+                    <RowDefinition Height="15"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <!-- 헤더 -->
+                <!-- 헤더와 버튼 영역을 통합 -->
                 <Grid Grid.Row="0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-                    <TextBlock Text="PSTAR-V2" Style="{StaticResource TitleText}" VerticalAlignment="Top" />
-                    <!-- 우상단 KTE 로고 텍스트 대체 -->
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
-                        <TextBlock Text="KTE" Foreground="White" FontFamily="Segoe UI Black" FontSize="20" />
+                    <!-- 헤더 영역 -->
+                    <Grid Grid.Row="0">
+                        <TextBlock Text="PSTAR-V2" Style="{StaticResource TitleText}" 
+                               HorizontalAlignment="Left" VerticalAlignment="Top" />
+                        <TextBlock Text="KTE" Foreground="White" FontFamily="Segoe UI Black" 
+                               FontSize="20" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                    </Grid>
+
+                    <!-- 버튼 영역 - 오른쪽 정렬 -->
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" 
+                            HorizontalAlignment="Right" Margin="0,10,0,0">
+                        <Button Content="상세 정보" 
+                            Background="#2979FF" 
+                            Foreground="White"
+                            Width="90"
+                            Height="30"
+                            FontSize="12"
+                            Margin="2,0" 
+                            Command="{Binding ViewModel.ShowDeviceDetailsCommand}"/>
+                        <Button Content="이상 발생" 
+                            Background="#FF9800" 
+                            Foreground="White"
+                            Width="90"
+                            Height="30"
+                            FontSize="12"
+                            Margin="2,0" 
+                            Command="{Binding ViewModel.SimulateAbnormalCommand}"/>
+                        <Button Content="삭제" 
+                            Background="#F44336" 
+                            Foreground="White"
+                            Width="60"
+                            Height="30"
+                            FontSize="12"
+                            Margin="2,0" 
+                            Command="{Binding ViewModel.DeleteDeviceCommand}"/>
                     </StackPanel>
                 </Grid>
+
 
                 <!-- 상단 상태 램프 2열 -->
                 <Grid Grid.Row="2">
@@ -485,7 +520,7 @@
                     </StackPanel>
 
                     <!-- 우측 Start/Stop 패널 -->
-                    <Border Grid.Column="1" Grid.RowSpan="2" Style="{StaticResource PanelCard}" Padding="22" >
+                    <Border Grid.Column="1" Grid.RowSpan="2" Style="{StaticResource PanelCard}" Padding="10" >
                         <StackPanel  HorizontalAlignment="Center" VerticalAlignment="Center" >
                             <!-- START -->
                             <Border Style="{StaticResource FatColorButton}"

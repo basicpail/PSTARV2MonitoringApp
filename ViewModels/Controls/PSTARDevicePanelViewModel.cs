@@ -5,6 +5,7 @@ using PSTARV2MonitoringApp.Services;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -49,6 +50,7 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             if (!string.IsNullOrEmpty(deviceId))
             {
                 // 장치 모델 생성
+                Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} [{DeviceId}] From PanelViewModel 생성자");
                 DeviceModel = new PSTARDeviceModel(deviceId, "Unknown");
 
                 // PSTAR 모델 생성 및 이벤트 연결
@@ -111,7 +113,7 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
         {
             if (DeviceModel == null) return;
 
-            // 속성 업데이트 (자동으로 PSTPumpModel과 연동)
+            // 속성 업데이트
             DeviceModel.IsSourceOn = isSourceOn;
             DeviceModel.IsAbnormal = isAbnormal;
             DeviceModel.IsRunning = isRunning;
@@ -141,6 +143,8 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             if (IsCANTransmissionActive && _canService.IsConnected)
             {
                 // CAN 서비스를 통해 데이터 전송
+                Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} [{DeviceId}] OnPumpCANDataTransmitted 호출됨 테스트 프레임 전송 호출 From PanelViewModel - 발생 소스: {sender.GetType().Name}");
+
                 await _canService.SendAsync(e.Frame);
             }
         }
@@ -274,7 +278,7 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
                 Title = $"모드 전환 - {DeviceId}",
                 Content = DeviceModel.IsManualMode ?
                     $"장치 {DeviceId}를 자동 모드로 전환하시겠습니까?" :
-                    $"장치 {DeviceId}를 수동 모드로 전환하시겠습니까?",
+                    $"장치 {DeviceId}를 StandBy 모드로 전환하시겠습니까?",
                 PrimaryButtonText = "확인",
                 CloseButtonText = "취소"
             };
@@ -490,5 +494,130 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             _canService.ConnectionStatusChanged -= OnConnectionStatusChanged;
         }
         #endregion
+
+        // 추가 명령 정의 - 파일 내 적절한 위치에 아래 코드를 추가해주세요
+        #region 추가 기능 명령
+
+        // 상세 정보 표시
+        [RelayCommand]
+        public async Task ShowDeviceDetails()
+        {
+            if (DeviceModel == null)
+            {
+                await ShowErrorDialog("장치 모델이 설정되지 않았습니다.");
+                return;
+            }
+
+            // 상세 정보 대화상자를 보여주기 위한 Views.Dialogs.DeviceDetailsDialog 호출
+            var detailsDialog = new Views.Dialogs.DeviceDetailsDialog(DeviceModel);
+
+            var dialog = new ContentDialog
+            {
+                Title = $"ID {DeviceId} 장치 상세 정보",
+                Content = detailsDialog,
+                CloseButtonText = "확인"
+            };
+
+            dialog.DialogHost = GetDialogHost();
+            await dialog.ShowAsync();
+
+            // 로그 기록
+            _logService.AddLog($"ID {DeviceId}", "장치 상세 정보 조회");
+        }
+
+        // 이상 발생 시뮬레이션
+        [RelayCommand]
+        public async Task SimulateAbnormal()
+        {
+            if (DeviceModel == null)
+            {
+                await ShowErrorDialog("장치 모델이 설정되지 않았습니다.");
+                return;
+            }
+
+            // 이상 발생 대화상자를 보여주기 위한 Views.Dialogs.AbnormalSimulationDialog 호출
+            var abnormalDialog = new Views.Dialogs.AbnormalSimulationDialog(DeviceId);
+
+            var dialog = new ContentDialog
+            {
+                Title = $"ID {DeviceId} 장치에 발생시킬 이상 상황",
+                Content = abnormalDialog,
+                PrimaryButtonText = "발생",
+                CloseButtonText = "취소"
+            };
+
+            dialog.DialogHost = GetDialogHost();
+            var result = await dialog.ShowAsync();
+
+            if (result == ContentDialogResult.Primary)
+            {
+                var selectedOption = abnormalDialog.GetSelectedAbnormalType();
+
+                switch (selectedOption)
+                {
+                    case "비정상 상태 (Abnormal)":
+                        // Overload 상태 변경
+                        if (_deviceService != null)
+                        {
+                            _deviceService.SetOverload(true);
+                            _logService.AddLog($"ID {DeviceId}", "비정상 상태 발생");
+                        }
+                        break;
+
+                    case "통신 오류 (Com Failure)":
+                        // 통신 오류 상태 설정
+                        DeviceModel.IsCommFailure = true;
+                        _logService.AddLog($"ID {DeviceId}", "통신 오류 발생");
+                        break;
+
+                    case "저압 상태 (Low Pressure)":
+                        // 저압 상태 변경
+                        if (_deviceService != null)
+                        {
+                            _deviceService.SetLowPressure(true);
+                            _logService.AddLog($"ID {DeviceId}", "저압 상태 발생");
+                        }
+                        break;
+                }
+            }
+        }
+
+        // 장치 삭제 처리
+        [RelayCommand]
+        public async Task DeleteDevice()
+        {
+            // 확인 대화 상자 표시
+            var dialog = new ContentDialog
+            {
+                Title = $"장치 삭제 확인",
+                Content = $"ID {DeviceId} 장치를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+                PrimaryButtonText = "삭제",
+                CloseButtonText = "취소",
+            };
+
+            dialog.DialogHost = GetDialogHost();
+            var result = await dialog.ShowAsync();
+
+            if (result == ContentDialogResult.Primary)
+            {
+                // 로그 기록
+                _logService.AddLog($"ID {DeviceId}", "장치 삭제 요청됨");
+
+                // DeviceDeleted 이벤트 발생 - 상위 컴포넌트에서 실제 삭제 처리
+                DeviceDeleted?.Invoke(this, new DeviceDeletedEventArgs { DeviceId = DeviceId });
+            }
+        }
+
+        // 장치 삭제 이벤트
+        public event EventHandler<DeviceDeletedEventArgs> DeviceDeleted;
+
+        #endregion
+
+    }
+    // PSTARDevicePanelViewModel 클래스 외부에 아래 클래스를 추가합니다.
+    public class DeviceDeletedEventArgs : EventArgs
+    {
+        public string DeviceId { get; set; }
+
     }
 }

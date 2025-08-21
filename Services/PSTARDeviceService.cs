@@ -14,15 +14,18 @@ namespace PSTARV2MonitoringApp.Services
         // 장치 ID와 CAN ID, interval
         private readonly string _deviceId;
         private readonly uint _canId;
-        private readonly int _canTransmitInterval = 500; // CAN 전송 주기 (ms)
+        private readonly int _canTransmitInterval = 1000; // CAN 전송 주기 (ms)
 
         // CAN 전송 타이머 (로직 타이머는 제거)
         private readonly Timer _transmitTimer;
 
+        // PSTAR 장치 타이머
+        private readonly Timer _deviceTimer;
+
         // 모델 레퍼런스 (장치 모델 공유)
         private PSTARDeviceModel _model;
 
-        // PSTARFW 변수 (필요한 것만 추가)
+        // PSTARFW 변수 필요한 것만 추가
         private int _buildUpTime = 5;   // BuildUp 시간 (초)
         private int _parallelTime = 10; // Parallel 시간 (초)
         private int _seqTime_mS = 10;   // Sequential Time (초)
@@ -54,7 +57,7 @@ namespace PSTARV2MonitoringApp.Services
         public bool OldRunStatus => _model?.OldRunStatus ?? false;
         public int CountBuildUpTime => _model?.CountBuildUpTime ?? 0;
         public int CountHeatingOnTime_S => _model?.CountHeatingOnTime_S ?? 0;
-        public int HeatingOnTime => _model ?.HeatingOnTime ?? 3;
+        public int HeatingOnTime => _model?.HeatingOnTime ?? 3;
         public int CountRunReq_S => _model?.CountRunReq_S ?? 0;
         public int CountComFault1_S => _model?.CountComFault1_S ?? 0;
         public int CountComFault2_S => _model?.CountComFault2_S ?? 0;
@@ -104,6 +107,12 @@ namespace PSTARV2MonitoringApp.Services
             _transmitTimer = new Timer(_canTransmitInterval);
             _transmitTimer.Elapsed += OnTransmitTimerElapsed;
             _transmitTimer.AutoReset = true;
+
+            //PSTAR 타이머
+            //이상상황 발생 부분에서 함수연결하고 인터벌 설정
+            _deviceTimer = new Timer();
+
+
         }
 
         /// <summary>
@@ -207,6 +216,8 @@ namespace PSTARV2MonitoringApp.Services
         /// </summary>
         private void TransmitCANData()
         {
+            Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} [{_deviceId}] TransmitCANData 호출됨");
+
             if (_model == null) return;
 
             // 모델에서 데이터 읽어서 CAN 프레임 구성
@@ -418,18 +429,21 @@ namespace PSTARV2MonitoringApp.Services
         /// </summary>
         private void ModeProc(bool modeStatus)
         {
-            if (_model == null) return;
+            return;
 
-            if (!modeStatus) // MANUAL_MODE
-            {
-                _model.IsManualMode = true;
-                _model.IsStandbyMode = false;
-            }
-            else // STBY_MODE
-            {
-                _model.IsManualMode = false;
-                _model.IsStandbyMode = true;
-            }
+            //recursive 조심
+            //if (_model == null) return;
+
+            //if (!modeStatus) // MANUAL_MODE
+            //{
+            //    _model.IsManualMode = true;
+            //    _model.IsStandbyMode = false;
+            //}
+            //else // STBY_MODE
+            //{
+            //    _model.IsManualMode = false;
+            //    _model.IsStandbyMode = true;
+            //}
         }
 
         /// <summary>

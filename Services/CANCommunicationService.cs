@@ -32,6 +32,9 @@ namespace PSTARV2MonitoringApp.Services
         private readonly Queue<CANFrame> _transmittedFrames = new Queue<CANFrame>(10); // 최대 10개 프레임 저장
         private readonly object _queueLock = new object();
 
+        // 프레임이 큐에 추가될 때 발생하는 이벤트
+        private event EventHandler FrameAddedToQueue;
+
         public CANSettings Settings => _settings ??= new CANSettings();
         public bool IsConnected => _settings?.IsConnected ?? false;
 
@@ -248,7 +251,7 @@ namespace PSTARV2MonitoringApp.Services
                     
                     if (canFrame != null)
                     {
-                        Console.WriteLine($"수신된 CAN 프레임: ID=0x{canFrame.Id:X3}, Data={BitConverter.ToString(canFrame.Data).Replace("-", " ")}");
+                        //Console.WriteLine($"수신된 CAN 프레임: ID=0x{canFrame.Id:X3}, Data={BitConverter.ToString(canFrame.Data).Replace("-", " ")}");
                         // 수신된 데이터를 이벤트로 전달
                         DataReceived?.Invoke(this, new CANDataReceivedEventArgs(canFrame));
                     }
@@ -345,45 +348,66 @@ namespace PSTARV2MonitoringApp.Services
         /// </summary>
         private async Task<CANFrame> ReceiveTestFrame(CancellationToken cancellationToken)
         {
-            // 큐에 저장된 프레임이 있으면 가져오기
             CANFrame frame = null;
 
-            lock (_queueLock)
+            try
             {
-                //while (_transmittedFrames.Count > 0)
-                if (_transmittedFrames.Count > 0)
+                // 큐에 프레임이 있으면 즉시 처리
+                lock (_queueLock)
                 {
-                    frame = _transmittedFrames.Dequeue();
-                    Debug.WriteLine($"테스트 프레임 수신: ID=0x{frame.Id:X3}, Data={frame.DataAsHex}");
+                    if (_transmittedFrames.Count > 0)
+                    {
+                        frame = _transmittedFrames.Dequeue();
+                        Console.WriteLine($"{DateTime.Now} 테스트 프레임 수신(즉시 처리): ID=0x{frame.Id:X3}, Data={frame.DataAsHex}");
+                        return frame;
+                    }
+                }
+
+                // 큐가 비어있으면 프레임이 들어올 때까지 대기
+                using var waitEvent = new SemaphoreSlim(0, 1);
+
+                // 메시지 추가 이벤트 핸들러
+                void OnFrameAdded(object sender, EventArgs e)
+                {
+                    waitEvent.Release();
+                }
+
+                // 임시 이벤트 구독
+                FrameAddedToQueue += OnFrameAdded;
+
+                try
+                {
+                    // 프레임이 추가되거나 취소 요청이 있을 때까지 대기
+                    // 1초 타임아웃 추가 (무한정 대기하지 않도록)
+                    await waitEvent.WaitAsync(1000, cancellationToken);
+
+                    // 큐 재확인
+                    lock (_queueLock)
+                    {
+                        if (_transmittedFrames.Count > 0)
+                        {
+                            frame = _transmittedFrames.Dequeue();
+                            Console.WriteLine($"{DateTime.Now} 테스트 프레임 수신(재확인): ID=0x{frame.Id:X3}, Data={frame.DataAsHex}");
+                        }
+                    }
+                }
+                finally
+                {
+                    // 이벤트 구독 해제
+                    FrameAddedToQueue -= OnFrameAdded;
                 }
             }
-            //TODO 수신한 데이터 프레임 Dequeue 주기 -> 일단 100ms로 설정해 놨지만 더 처리 방법이 있을 것이다.
-            //단순히 주기적으로 처리하도록 하면, 타이밍 문제가 생김.
-            await Task.Delay(100, cancellationToken);
+            catch (OperationCanceledException)
+            {
+                // 작업 취소 시 null 반환
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"ReceiveTestFrame 오류: {ex.Message}");
+            }
 
-            return frame; // 큐에 프레임이 없으면 null 반환
-            //await Task.Delay(1000, cancellationToken); // 1초마다 테스트 데이터 생성
-            
-            //var random = new Random();
-            
-            //// 실제 데이터 형식에 맞는 테스트 데이터 생성
-            //var data = new byte[8];
-            //data[0] = (byte)(random.Next(2)); // STBY_Start (0 or 1)
-            //data[1] = (byte)(random.Next(2)); // RunLamp (0 or 1)
-            //data[2] = (byte)(random.Next(2)); // Overload (0 or 1)
-            //data[3] = (byte)(random.Next(2)); // ModeStatus (0 or 1)
-            //data[4] = (byte)(random.Next(2)); // RUN_req (0 or 1)
-            //data[5] = (byte)(random.Next(2)); // ResetButton (0 or 1)
-            //data[6] = (byte)(random.Next(2)); // StandByLamp (0 or 1)
-            //data[7] = (byte)(random.Next(2)); // TXLowpress (0 or 1)
-            
-            //return new CANFrame
-            //{
-            //    Id = Settings.DeviceBaseId + (uint)random.Next(3), // 0x100, 0x101, 0x102
-            //    Data = data,
-            //    Timestamp = DateTime.Now,
-            //    IsExtended = false
-            //};
+            return frame;
         }
 
         /// <summary>
@@ -403,6 +427,7 @@ namespace PSTARV2MonitoringApp.Services
                 {
                     lock (_queueLock)
                     {
+                        Console.WriteLine($"{DateTime.Now} 테스트 프레임 전송: ID=0x{frame.Id:X3}, Data={frame.DataAsHex}");
                         // 큐 크기 제한
                         if (_transmittedFrames.Count >= 10)
                             _transmittedFrames.Dequeue();
@@ -415,11 +440,14 @@ namespace PSTARV2MonitoringApp.Services
                             Timestamp = DateTime.Now,
                             IsExtended = frame.IsExtended
                         });
+
+                        // 큐에 프레임이 추가되었음을 알림
+                        FrameAddedToQueue?.Invoke(this, EventArgs.Empty);
                     }
                 }
 
                 // 모든 CAN 데이터 이벤트 발생 (추가된 부분)
-                AllCANDataReceived?.Invoke(this, new CANDataReceivedEventArgs(frame));
+                //AllCANDataReceived?.Invoke(this, new CANDataReceivedEventArgs(frame));
                 
                 switch (Settings.InterfaceType.ToUpper())
                 {

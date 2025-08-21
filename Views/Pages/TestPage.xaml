@@ -61,11 +61,12 @@
         
 
         <Style x:Key="CardBorderStyle" TargetType="Border">
-            <Setter Property="BorderBrush" Value="#60CDFF"/>
+            <Setter Property="Margin" Value="0,0,5,0"/>
+            <!--<Setter Property="BorderBrush" Value="#60CDFF"/>
             <Setter Property="BorderThickness" Value="2"/>
             <Setter Property="CornerRadius" Value="5"/>
             <Setter Property="Margin" Value="0"/>
-            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Background" Value="Transparent"/>-->
         </Style>
     </Page.Resources>
 

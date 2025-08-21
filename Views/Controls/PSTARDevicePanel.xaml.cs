@@ -33,7 +33,15 @@ namespace PSTARV2MonitoringApp.Views.Controls
         // 각 패널마다 독립적인 ViewModel 인스턴스
         public PSTARDevicePanelViewModel ViewModel { get; private set; }
 
-        // 특정 장치 ID로 초기화하는 생성자 (권장)
+        // TestViewModel의 ViewModel을 사용하는 생성자 추가
+        public PSTARDevicePanel(string deviceId, PSTARDevicePanelViewModel viewModel)
+        {
+            ViewModel = viewModel;  // 기존 ViewModel 사용
+            DataContext = this;
+            InitializeComponent();
+        }
+
+        // 특정 장치 ID로 초기화하는 생성자 
         public PSTARDevicePanel(string deviceId)
         {
             ViewModel = new PSTARDevicePanelViewModel(deviceId);
@@ -134,6 +142,7 @@ namespace PSTARV2MonitoringApp.Views.Controls
         {
             return ViewModel?.DeviceId;
         }
+
         private void UpdateAllLamps()
         {
             var deviceModel = ViewModel?.DeviceModel;
