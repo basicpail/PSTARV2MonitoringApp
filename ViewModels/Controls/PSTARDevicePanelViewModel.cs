@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.Input;
 using PSTARV2MonitoringApp.Models;
 using PSTARV2MonitoringApp.Services;
+using PSTARV2MonitoringApp.Views.Dialogs;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -50,7 +51,7 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             if (!string.IsNullOrEmpty(deviceId))
             {
                 // 장치 모델 생성
-                Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} [{DeviceId}] From PanelViewModel 생성자");
+                //Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} [{DeviceId}] From PanelViewModel 생성자");
                 DeviceModel = new PSTARDeviceModel(deviceId, "Unknown");
 
                 // PSTAR 모델 생성 및 이벤트 연결
@@ -143,7 +144,7 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             if (IsCANTransmissionActive && _canService.IsConnected)
             {
                 // CAN 서비스를 통해 데이터 전송
-                Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} [{DeviceId}] OnPumpCANDataTransmitted 호출됨 테스트 프레임 전송 호출 From PanelViewModel - 발생 소스: {sender.GetType().Name}");
+                //Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} [{DeviceId}] OnPumpCANDataTransmitted 호출됨 테스트 프레임 전송 호출 From PanelViewModel - 발생 소스: {sender.GetType().Name}");
 
                 await _canService.SendAsync(e.Frame);
             }
@@ -461,6 +462,114 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             _logService.LogLPTestEnd(DeviceId);
         }
 
+
+        // 이상 발생 시뮬레이션
+        [RelayCommand]
+        public async Task SimulateAbnormal()
+        {
+            if (DeviceModel == null)
+            {
+                await ShowErrorDialog("장치 모델이 설정되지 않았습니다.");
+                return;
+            }
+
+            // 이상 발생 대화상자 표시
+            var abnormalDialog = new Views.Dialogs.AbnormalSimulationDialog(DeviceId);
+
+            var dialog = new ContentDialog
+            {
+                Title = $"ID {DeviceId} 장치에 발생 시킬 이상 상황",
+                Content = abnormalDialog,
+                PrimaryButtonText = "발생",
+                CloseButtonText = "취소"
+            };
+
+            dialog.DialogHost = GetDialogHost();
+            var result = await dialog.ShowAsync();
+
+            if (result == ContentDialogResult.Primary)
+            {
+                // 선택된 이상 유형 가져오기
+                var abnormalType = abnormalDialog.GetSelectedAbnormalTypeEnum();
+                string logMessage = string.Empty;
+
+                switch (abnormalType)
+                {
+                    case AbnormalType.OVERLOAD:
+                        // Overload 상태 설정
+                        if (_deviceService != null)
+                        {
+                            _deviceService.SetOverload(true);
+                            logMessage = "비정상 상태(Overload) 발생";
+
+                            // PSTARDeviceModel에 직접 설정
+                            DeviceModel.Overload = true;
+                            DeviceModel.IsAbnormal = true;
+                            DeviceModel.Overload_I = true;
+                        }
+                        break;
+
+                    case AbnormalType.POWERFAIL:
+                        //아직 구현 안됨
+                        break;
+
+                    
+
+                    case AbnormalType.LowPressure:
+                        // 저압 상태 설정
+                        if (_deviceService != null)
+                        {
+                            Console.WriteLine("LOWPressure 발생");
+                            //_deviceService.SetLowPressure(true);
+
+                            // PSTARDeviceModel에 직접 설정
+                            DeviceModel.TXLowpress = true;
+                            //DeviceModel.IsLowPressure = true;
+                            //DeviceModel.Lowpress_I = true;
+                            //DeviceModel.TxLowpressInternal = true;
+
+                            logMessage = "저압 상태 발생";
+                        }
+                        break;
+
+                    case AbnormalType.CommFailure:
+                        // 통신 오류 상태 설정
+                        DeviceModel.IsCommFailure = true;
+
+                        // 통신 오류 관련 플래그 설정
+                        switch (DeviceId)
+                        {
+                            case "1":
+                                DeviceModel.Error_Flag1 = true;
+                                break;
+                            case "2":
+                                DeviceModel.Error_Flag2 = true;
+                                break;
+                            case "3":
+                                DeviceModel.Error_Flag3 = true;
+                                break;
+                        }
+
+                        logMessage = "통신 오류 발생";
+                        break;
+                }
+
+                // 로그 기록
+                if (!string.IsNullOrEmpty(logMessage))
+                {
+                    _logService.AddLog($"ID {DeviceId}", logMessage);
+                }
+
+                // 상태 변경 후 로직 실행 강제 트리거
+                if (_deviceService != null)
+                {
+                    _deviceService.ExecutePSTARLogic();
+                }
+
+                // 속성 변경 알림
+                OnPropertyChanged(nameof(DeviceModel));
+            }
+        }
         private async Task ShowErrorDialog(string message)
         {
             var errorDialog = new ContentDialog
@@ -524,63 +633,7 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             // 로그 기록
             _logService.AddLog($"ID {DeviceId}", "장치 상세 정보 조회");
         }
-
-        // 이상 발생 시뮬레이션
-        [RelayCommand]
-        public async Task SimulateAbnormal()
-        {
-            if (DeviceModel == null)
-            {
-                await ShowErrorDialog("장치 모델이 설정되지 않았습니다.");
-                return;
-            }
-
-            // 이상 발생 대화상자를 보여주기 위한 Views.Dialogs.AbnormalSimulationDialog 호출
-            var abnormalDialog = new Views.Dialogs.AbnormalSimulationDialog(DeviceId);
-
-            var dialog = new ContentDialog
-            {
-                Title = $"ID {DeviceId} 장치에 발생시킬 이상 상황",
-                Content = abnormalDialog,
-                PrimaryButtonText = "발생",
-                CloseButtonText = "취소"
-            };
-
-            dialog.DialogHost = GetDialogHost();
-            var result = await dialog.ShowAsync();
-
-            if (result == ContentDialogResult.Primary)
-            {
-                var selectedOption = abnormalDialog.GetSelectedAbnormalType();
-
-                switch (selectedOption)
-                {
-                    case "비정상 상태 (Abnormal)":
-                        // Overload 상태 변경
-                        if (_deviceService != null)
-                        {
-                            _deviceService.SetOverload(true);
-                            _logService.AddLog($"ID {DeviceId}", "비정상 상태 발생");
-                        }
-                        break;
-
-                    case "통신 오류 (Com Failure)":
-                        // 통신 오류 상태 설정
-                        DeviceModel.IsCommFailure = true;
-                        _logService.AddLog($"ID {DeviceId}", "통신 오류 발생");
-                        break;
-
-                    case "저압 상태 (Low Pressure)":
-                        // 저압 상태 변경
-                        if (_deviceService != null)
-                        {
-                            _deviceService.SetLowPressure(true);
-                            _logService.AddLog($"ID {DeviceId}", "저압 상태 발생");
-                        }
-                        break;
-                }
-            }
-        }
+        
 
         // 장치 삭제 처리
         [RelayCommand]

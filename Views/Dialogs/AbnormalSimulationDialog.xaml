@@ -14,8 +14,9 @@
                           Background="#2D2D2D"
                           Foreground="White">
                     <ComboBoxItem Content="OVERLOAD" IsSelected="True"/>
-                    <ComboBoxItem Content="LOW PRESSURE"/>
                     <ComboBoxItem Content="POWER FAIL"/>
+                    <ComboBoxItem Content="LOW PRESSURE"/>
+                    <ComboBoxItem Content="COMM FAILURE"/>
                 </ComboBox>
             </ScrollViewer>
 </UserControl>

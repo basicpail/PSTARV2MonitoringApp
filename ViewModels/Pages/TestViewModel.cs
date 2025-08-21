@@ -182,9 +182,9 @@ namespace PSTARV2MonitoringApp.ViewModels.Pages
                 deviceViewModel.SetDeviceModel(devicePanelModel);
 
                 // 새 PSTARDevicePanel 생성 (독립적인 ViewModel 사용)
-                var devicePanel = new PSTARDevicePanel(deviceId.Id);
+                //var devicePanel = new PSTARDevicePanel(deviceId.Id);
                 // 새 PSTARDevicePanel 생성 (ViewModel 주입)
-                //var devicePanel = new PSTARDevicePanel(deviceId.Id, deviceViewModel);
+                var devicePanel = new PSTARDevicePanel(deviceId.Id, deviceViewModel);
                 devicePanel.SetDeviceModel(devicePanelModel);
                 RegisterDevicePanelEvents(devicePanel);
 

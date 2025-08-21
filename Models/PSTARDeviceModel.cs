@@ -29,7 +29,7 @@ namespace PSTARV2MonitoringApp.Models
         private bool _isManualMode;
         #endregion
 
-        #region 필드 - PSTPumpModel 상태 변수 (FW와 동일)
+        #region 필드 - PSTAR 상태 변수 (FW와 동일)
         // PSTAR 동작 상태 변수
         private bool _runStatus = false;       // 0: STOP, 1: RUN
         private bool _heatStatus = false;      // 0: HEAT_OFF, 1: HEAT_ON
@@ -234,7 +234,7 @@ namespace PSTARV2MonitoringApp.Models
         }
         #endregion
 
-        #region 속성 - PSTPumpModel 상태 변수
+        #region 속성 - PSTAR 상태 변수
         // PSTAR 동작 상태 변수
         public bool RunStatus
         {
@@ -376,9 +376,9 @@ namespace PSTARV2MonitoringApp.Models
             {
                 if (SetProperty(ref _txLowpress, value))
                 {
-                    // UI 상태도 함께 업데이트
-                    _isLowPressure = value;
-                    OnPropertyChanged(nameof(IsLowPressure));
+                    _txLowpress = value;
+                    //_isLowPressure = value;
+                    OnPropertyChanged(nameof(TXLowpress));
                     StateChanged?.Invoke(this, EventArgs.Empty);
                 }
             }
@@ -829,7 +829,7 @@ namespace PSTARV2MonitoringApp.Models
             }
         }
 
-        // 상태 변경 이벤트 처리
+        // 상태 변경 이벤트 처리 PSTARDevicePanel 업데이트된다.
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

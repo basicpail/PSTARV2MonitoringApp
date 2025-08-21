@@ -143,7 +143,6 @@ namespace PSTARV2MonitoringApp.Services
         {
             // 모델 상태가 변경되면 로직 실행
             ExecutePSTARLogic();
-
             // 상태 변경 알림
             NotifyStateChanged();
         }
@@ -170,7 +169,7 @@ namespace PSTARV2MonitoringApp.Services
         /// <summary>
         /// 로직 실행 (이전 OnLogicTimerElapsed의 내용)
         /// </summary>
-        private void ExecutePSTARLogic()
+        public void ExecutePSTARLogic()
         {
             if (_model == null) return;
 
@@ -216,20 +215,20 @@ namespace PSTARV2MonitoringApp.Services
         /// </summary>
         private void TransmitCANData()
         {
-            Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} [{_deviceId}] TransmitCANData 호출됨");
+            //Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} [{_deviceId}] TransmitCANData 호출됨");
 
             if (_model == null) return;
 
             // 모델에서 데이터 읽어서 CAN 프레임 구성
             byte[] data = new byte[8];
-            data[0] = (byte)(_model.STBY_Start ? 1 : 0);
-            data[1] = (byte)(_model.RunLamp ? 1 : 0);
-            data[2] = (byte)(_model.Overload ? 1 : 0);
-            data[3] = (byte)(_model.ModeStatus ? 1 : 0);  // 0: MANUAL, 1: STBY
-            data[4] = (byte)(_model.RUN_req ? 1 : 0);
-            data[5] = (byte)(_model.ResetButton ? 1 : 0);
-            data[6] = (byte)(_model.StandByLamp ? 1 : 0);
-            data[7] = (byte)(_model.TXLowpress ? 1 : 0);
+            data[CANDataIndices.STBY_START] = (byte)(_model.STBY_Start ? 1 : 0);
+            data[CANDataIndices.RUN_LAMP] = (byte)(_model.RunLamp ? 1 : 0);
+            data[CANDataIndices.OVERLOAD] = (byte)(_model.Overload ? 1 : 0);
+            data[CANDataIndices.MODE_STATUS] = (byte)(_model.ModeStatus ? 1 : 0);  // 0: MANUAL, 1: STBY
+            data[CANDataIndices.RUN_REQ] = (byte)(_model.RUN_req ? 1 : 0);
+            data[CANDataIndices.RESET_BUTTON] = (byte)(_model.ResetButton ? 1 : 0);
+            data[CANDataIndices.STANDBY_LAMP] = (byte)(_model.StandByLamp ? 1 : 0);
+            data[CANDataIndices.TX_LOWPRESS] = (byte)(_model.TXLowpress ? 1 : 0);
 
             // CAN 프레임 생성
             var frame = new CANFrame
@@ -260,18 +259,18 @@ namespace PSTARV2MonitoringApp.Services
                 {
                     // Push the Reset Button -> STANDBY LAMP ON (Change MAIN Pump : MAIN -> STBY)
                     if (_model.ModeStatus &&
-                        ((_model.RX_Data1[1] == 1 && _model.RX_Data1[6] == 1) ||
-                         (_model.RX_Data2[1] == 1 && _model.RX_Data2[6] == 1) ||
-                         (_model.RX_Data3[1] == 1 && _model.RX_Data3[6] == 1)))
+                        ((_model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1) ||
+                         (_model.RX_Data2[1] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1) ||
+                         (_model.RX_Data3[1] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1)))
                     {
                         _model.RunStatus = false;
                         // EEPROM 저장 부분은 C#에서는 제외
                         _model.InitFlag = false;
                     }
                     // After Power Fail (3 ST'BY(2 RUN) - MAIN 1 & MAIN2)
-                    else if ((_deviceId == "1" && _model.RX_Data2[1] == 1 && _model.RX_Data2[3] == 1 && _model.RX_Data3[1] == 1 && _model.RX_Data3[3] == 1) ||
-                             (_deviceId == "2" && _model.RX_Data1[1] == 1 && _model.RX_Data1[3] == 1 && _model.RX_Data3[1] == 1 && _model.RX_Data3[3] == 1) ||
-                             (_deviceId == "3" && _model.RX_Data1[1] == 1 && _model.RX_Data1[3] == 1 && _model.RX_Data2[1] == 1 && _model.RX_Data2[3] == 1))
+                    else if ((_deviceId == "1" && _model.RX_Data2[1] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && _model.RX_Data3[1] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1) ||
+                             (_deviceId == "2" && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && _model.RX_Data3[1] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1) ||
+                             (_deviceId == "3" && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && _model.RX_Data2[1] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1))
                     {
                         _model.RunStatus = false;
                         // EEPROM 저장 부분은 C#에서는 제외
@@ -279,9 +278,9 @@ namespace PSTARV2MonitoringApp.Services
                     }
                     // After Power Fail (3 ST'BY(1 RUN) - ST'BY)
                     else if (_model.ComStatus == 5 && // StandBy_3_1RUN
-                            ((_model.RX_Data1[1] == 0 && _model.RX_Data1[5] == 1 && _model.RX_Data1[6] == 1) ||
-                             (_model.RX_Data2[1] == 0 && _model.RX_Data2[5] == 1 && _model.RX_Data2[6] == 1) ||
-                             (_model.RX_Data3[1] == 0 && _model.RX_Data3[5] == 1 && _model.RX_Data3[6] == 1)))
+                            ((_model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data1[CANDataIndices.RESET_BUTTON] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1) ||
+                             (_model.RX_Data2[1] == 0 && _model.RX_Data1[CANDataIndices.RESET_BUTTON] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1) ||
+                             (_model.RX_Data3[1] == 0 && _model.RX_Data1[CANDataIndices.RESET_BUTTON] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1)))
                     {
                         _model.RunStatus = false;
                         // EEPROM 저장 부분은 C#에서는 제외
@@ -315,7 +314,7 @@ namespace PSTARV2MonitoringApp.Services
             }
 
             // 다른 장치의 과부하 상태 확인
-            if (_model.RX_Data1[2] == 1 || _model.RX_Data2[2] == 1 || _model.RX_Data3[2] == 1)
+            if (_model.RX_Data1[CANDataIndices.OVERLOAD] == 1 || _model.RX_Data2[CANDataIndices.OVERLOAD] == 1 || _model.RX_Data3[CANDataIndices.OVERLOAD] == 1)
             {
                 _model.CountOverload_Flag = true;
             }
@@ -520,9 +519,9 @@ namespace PSTARV2MonitoringApp.Services
 
                 // BuildUp 시작 조건
                 if (_model.IsLowPressure && _model.RunLamp &&
-                    ((_model.RX_Data1[1] == 0 && _model.RX_Data1[6] == 1) ||
-                     (_model.RX_Data2[1] == 0 && _model.RX_Data2[6] == 1) ||
-                     (_model.RX_Data3[1] == 0 && _model.RX_Data3[6] == 1)))
+                    ((_model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1) ||
+                     (_model.RX_Data2[1] == 0 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1) ||
+                     (_model.RX_Data3[1] == 0 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1)))
                 {
                     _model.CountBuildUpStart = 1;
                 }
@@ -543,9 +542,9 @@ namespace PSTARV2MonitoringApp.Services
                     }
                 }
                 else if (_model.IsLowPressure &&
-                    ((_model.RX_Data1[1] == 1 && _model.RX_Data1[6] == 1) ||
-                     (_model.RX_Data2[1] == 1 && _model.RX_Data2[6] == 1) ||
-                     (_model.RX_Data3[1] == 1 && _model.RX_Data3[6] == 1)))
+                    ((_model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1) ||
+                     (_model.RX_Data2[1] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1) ||
+                     (_model.RX_Data3[1] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1)))
                 {
                     if (_model.CountBuildUpTime_S >= _model.CountBuildUpTime)
                     {
@@ -597,7 +596,7 @@ namespace PSTARV2MonitoringApp.Services
                 _model.Error_Flag1 = true;
 
                 // 자동 전환 (StandBy에서 작동 중이던 장치 실패 시 실행)
-                if (_model.StandByLamp && _model.RX_Data1[1] == 1)
+                if (_model.StandByLamp && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 1)
                 {
                     _model.RunStatus = true;
                 }
@@ -614,11 +613,11 @@ namespace PSTARV2MonitoringApp.Services
             }
 
             // 수동 모드는 연결되지 않은 것으로 간주
-            if (_model.RX_Data1[3] == 0 && deviceId != "1") // MANUAL_MODE
+            if (_model.RX_Data1[CANDataIndices.MODE_STATUS] == 0 && deviceId != "1") // MANUAL_MODE
             {
                 _model.Error_Flag1 = true;
             }
-            else if (_model.RX_Data1[3] == 1 && deviceId != "1") // STBY_MODE
+            else if (_model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && deviceId != "1") // STBY_MODE
             {
                 _model.Error_Flag1 = false;
             }
@@ -643,11 +642,11 @@ namespace PSTARV2MonitoringApp.Services
                 }
             }
 
-            if (_model.RX_Data2[3] == 0 && deviceId != "2")
+            if (_model.RX_Data1[CANDataIndices.MODE_STATUS] == 0 && deviceId != "2")
             {
                 _model.Error_Flag2 = true;
             }
-            else if (_model.RX_Data2[3] == 1 && deviceId != "2")
+            else if (_model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && deviceId != "2")
             {
                 _model.Error_Flag2 = false;
             }
@@ -672,11 +671,11 @@ namespace PSTARV2MonitoringApp.Services
                 }
             }
 
-            if (_model.RX_Data3[3] == 0 && deviceId != "3")
+            if (_model.RX_Data1[CANDataIndices.MODE_STATUS] == 0 && deviceId != "3")
             {
                 _model.Error_Flag3 = true;
             }
-            else if (_model.RX_Data3[3] == 1 && deviceId != "3")
+            else if (_model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && deviceId != "3")
             {
                 _model.Error_Flag3 = false;
             }
@@ -692,12 +691,12 @@ namespace PSTARV2MonitoringApp.Services
             if (!_model.Overload && _model.StandByLamp)
             {
                 if (!_requestFlag &&
-                    (_model.RX_Data1[4] == 1 || _model.RX_Data2[4] == 1 || _model.RX_Data3[4] == 1))
+                    (_model.RX_Data1[CANDataIndices.RUN_REQ] == 1 || _model.RX_Data1[CANDataIndices.RUN_REQ] == 1 || _model.RX_Data1[CANDataIndices.RUN_REQ] == 1))
                 {
                     _requestFlag = true;
                     _model.RunStatus = true;
                 }
-                else if (_model.RX_Data1[4] == 0 && _model.RX_Data2[4] == 0 && _model.RX_Data3[4] == 0)
+                else if (_model.RX_Data1[CANDataIndices.RUN_REQ] == 0 && _model.RX_Data1[CANDataIndices.RUN_REQ] == 0 && _model.RX_Data1[CANDataIndices.RUN_REQ] == 0)
                 {
                     _requestFlag = false;
                 }
@@ -730,14 +729,14 @@ namespace PSTARV2MonitoringApp.Services
                 }
                 // 정상 상태로 복귀 시 Run 요청 취소
                 else if (!_model.Overload && !_model.IsLowPressure && !_model.RunLamp &&
-                        (_model.RX_Data1[1] == 1 || _model.RX_Data2[1] == 1 || _model.RX_Data3[1] == 1) &&
+                        (_model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 || _model.RX_Data2[1] == 1 || _model.RX_Data3[1] == 1) &&
                         _model.RUN_req)
                 {
                     _model.RUN_req = false;
                 }
                 // 저압 상태에서 다른 펌프가 실행 중인 경우 Run 요청 취소
                 else if (_model.IsLowPressure &&
-                        (_model.RX_Data1[1] == 1 || _model.RX_Data2[1] == 1 || _model.RX_Data3[1] == 1) &&
+                        (_model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 || _model.RX_Data2[1] == 1 || _model.RX_Data3[1] == 1) &&
                         !_model.RunLamp && _model.RUN_req)
                 {
                     _model.RUN_req = false;
@@ -882,15 +881,15 @@ namespace PSTARV2MonitoringApp.Services
                 _model.StandBy_3_1RUN_Flag = false;
 
                 // 실행 상태에 따라 ComStatus 결정
-                if ((_model.RunLamp && _model.RX_Data1[1] == 1 && _model.RX_Data3[1] == 0) ||
-                    (_model.RunLamp && _model.RX_Data1[1] == 0 && _model.RX_Data3[1] == 1) ||
-                    (!_model.RunLamp && _model.RX_Data1[1] == 1 && _model.RX_Data3[1] == 1))
+                if ((_model.RunLamp && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data3[1] == 0) ||
+                    (_model.RunLamp && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data3[1] == 1) ||
+                    (!_model.RunLamp && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data3[1] == 1))
                 {
                     _model.ComStatus = 3; // StandBy_3
                 }
-                else if ((_model.RunLamp && _model.RX_Data1[1] == 0 && _model.RX_Data3[1] == 0) ||
-                        (!_model.RunLamp && _model.RX_Data1[1] == 1 && _model.RX_Data3[1] == 0) ||
-                        (!_model.RunLamp && _model.RX_Data1[1] == 0 && _model.RX_Data3[1] == 1))
+                else if ((_model.RunLamp && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data3[1] == 0) ||
+                        (!_model.RunLamp && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data3[1] == 0) ||
+                        (!_model.RunLamp && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data3[1] == 1))
                 {
                     _model.ComStatus = 5; // StandBy_3_1RUN
                 }
@@ -945,15 +944,15 @@ namespace PSTARV2MonitoringApp.Services
                 _model.StandBy_3_1RUN_Flag = false;
 
                 // 실행 상태에 따라 ComStatus 결정
-                if ((_model.RunLamp && _model.RX_Data1[1] == 1 && _model.RX_Data2[1] == 0) ||
-                    (_model.RunLamp && _model.RX_Data1[1] == 0 && _model.RX_Data2[1] == 1) ||
-                    (!_model.RunLamp && _model.RX_Data1[1] == 1 && _model.RX_Data2[1] == 1))
+                if ((_model.RunLamp && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data2[1] == 0) ||
+                    (_model.RunLamp && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data2[1] == 1) ||
+                    (!_model.RunLamp && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data2[1] == 1))
                 {
                     _model.ComStatus = 3; // StandBy_3
                 }
-                else if ((_model.RunLamp && _model.RX_Data1[1] == 0 && _model.RX_Data2[1] == 0) ||
-                        (!_model.RunLamp && _model.RX_Data1[1] == 1 && _model.RX_Data2[1] == 0) ||
-                        (!_model.RunLamp && _model.RX_Data1[1] == 0 && _model.RX_Data2[1] == 1))
+                else if ((_model.RunLamp && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data2[1] == 0) ||
+                        (!_model.RunLamp && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data2[1] == 0) ||
+                        (!_model.RunLamp && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data2[1] == 1))
                 {
                     _model.ComStatus = 5; // StandBy_3_1RUN
                 }
@@ -1000,9 +999,9 @@ namespace PSTARV2MonitoringApp.Services
                     case 3: // StandBy_3
                             // AFTER LOW PRESSURE / OVERLOAD / POWER FAIL - MAIN PUMP
                         if (!_model.Overload &&
-                            ((_model.RX_Data1[1] == 1 && _model.RX_Data1[6] == 1) ||
-                             (_model.RX_Data2[1] == 1 && _model.RX_Data2[6] == 1) ||
-                             (_model.RX_Data3[1] == 1 && _model.RX_Data3[6] == 1)))
+                            ((_model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1) ||
+                             (_model.RX_Data2[1] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1) ||
+                             (_model.RX_Data3[1] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1)))
                         {
                             if (_model.ResetButton)
                             {
@@ -1012,45 +1011,45 @@ namespace PSTARV2MonitoringApp.Services
                         // AFTER LOW PRESSURE / OVERLOAD / POWER FAIL - ST'BY PUMP
                         else if (_model.RunLamp && _model.StandByLamp)
                         {
-                            if ((_model.RX_Data1[1] == 0 && _model.RX_Data1[5] == 1) ||
-                                (_model.RX_Data2[1] == 0 && _model.RX_Data2[5] == 1) ||
-                                (_model.RX_Data3[1] == 0 && _model.RX_Data3[5] == 1))
+                            if ((_model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data1[CANDataIndices.RESET_BUTTON] == 1) ||
+                                (_model.RX_Data2[1] == 0 && _model.RX_Data1[CANDataIndices.RESET_BUTTON] == 1) ||
+                                (_model.RX_Data3[1] == 0 && _model.RX_Data1[CANDataIndices.RESET_BUTTON] == 1))
                             {
                                 _model.StandByLamp = false; // CHANGE MAIN PUMP (STBY -> MAIN)
                             }
                         }
                         // AFTER POWER RECOVERY
                         else if ((_deviceId == "1" &&
-                                  ((_model.RX_Data2[1] == 1 && _model.RX_Data2[6] == 0 && _model.RX_Data3[1] == 0 && _model.RX_Data3[6] == 1) ||
-                                   (_model.RX_Data3[1] == 1 && _model.RX_Data3[6] == 0 && _model.RX_Data2[1] == 0 && _model.RX_Data2[6] == 1))) ||
+                                  ((_model.RX_Data2[1] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 0 && _model.RX_Data3[1] == 0 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1) ||
+                                   (_model.RX_Data3[1] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 0 && _model.RX_Data2[1] == 0 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1))) ||
                                  (_deviceId == "2" &&
-                                  ((_model.RX_Data1[1] == 1 && _model.RX_Data1[6] == 0 && _model.RX_Data3[1] == 0 && _model.RX_Data3[6] == 1) ||
-                                   (_model.RX_Data3[1] == 1 && _model.RX_Data3[6] == 0 && _model.RX_Data1[1] == 0 && _model.RX_Data1[6] == 1))) ||
+                                  ((_model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 0 && _model.RX_Data3[1] == 0 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1) ||
+                                   (_model.RX_Data3[1] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 0 && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1))) ||
                                  (_deviceId == "3" &&
-                                  ((_model.RX_Data1[1] == 1 && _model.RX_Data1[6] == 0 && _model.RX_Data2[1] == 0 && _model.RX_Data2[6] == 1) ||
-                                   (_model.RX_Data2[1] == 1 && _model.RX_Data2[6] == 0 && _model.RX_Data1[1] == 0 && _model.RX_Data1[6] == 1))))
+                                  ((_model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 0 && _model.RX_Data2[1] == 0 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1) ||
+                                   (_model.RX_Data2[1] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 0 && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1))))
                         {
                             _model.StandByLamp = false;
                         }
                         // NORMAL - MAIN PUMP : STBY MODE & RUN / ST'BY PUMP : STAND BY LAMP ON
-                        else if (((_model.RX_Data1[1] == 1 && _model.RX_Data1[3] == 1 && _model.RX_Data1[6] == 0) ||
-                                  (_model.RX_Data2[1] == 1 && _model.RX_Data2[3] == 1 && _model.RX_Data2[6] == 0) ||
-                                  (_model.RX_Data3[1] == 1 && _model.RX_Data3[3] == 1 && _model.RX_Data3[6] == 0)) &&
+                        else if (((_model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 0) ||
+                                  (_model.RX_Data2[1] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 0) ||
+                                  (_model.RX_Data3[1] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 0)) &&
                                  !_model.Overload && !_model.RunLamp && _model.StopLamp && !_model.InitFlag)
                         {
                             _model.StandByLamp = true;
                         }
                         // NORMAL - MAIN PUMP : STBY MODE & RUN -> STOP / ST'BY PUMP : STAND BY LAMP ON -> OFF
-                        else if ((_model.RX_Data1[1] == 0 && _model.RX_Data1[2] == 0 && _model.RX_Data1[3] == 1) ||
-                                 (_model.RX_Data2[1] == 0 && _model.RX_Data2[2] == 0 && _model.RX_Data2[3] == 1) ||
-                                 (_model.RX_Data3[1] == 0 && _model.RX_Data3[2] == 0 && _model.RX_Data3[3] == 1))
+                        else if ((_model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data1[CANDataIndices.OVERLOAD] == 0 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1) ||
+                                 (_model.RX_Data2[1] == 0 && _model.RX_Data2[CANDataIndices.OVERLOAD] == 0 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1) ||
+                                 (_model.RX_Data3[1] == 0 && _model.RX_Data3[CANDataIndices.OVERLOAD] == 0 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1))
                         {
                             _model.StandByLamp = false;
                         }
                         // NORMAL - MAIN PUMP : MANUAL MODE & RUN / ST'BY PUMP : STAND BY LAMP OFF
-                        else if ((_model.RX_Data1[1] == 1 && _model.RX_Data1[3] == 0) ||
-                                 (_model.RX_Data2[1] == 1 && _model.RX_Data2[3] == 0) ||
-                                 (_model.RX_Data3[1] == 1 && _model.RX_Data3[3] == 0))
+                        else if ((_model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 0) ||
+                                 (_model.RX_Data2[1] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 0) ||
+                                 (_model.RX_Data3[1] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 0))
                         {
                             _model.StandByLamp = false;
                         }
@@ -1082,140 +1081,140 @@ namespace PSTARV2MonitoringApp.Services
         private void HandleStandBy_3_1RUN()
         {
             // 장치 ID별 분기 처리
-            if (_model.RX_Data1[1] == 1 && _model.RX_Data1[6] == 0)
+            if (_model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 0)
             {
                 if (_deviceId == "2")
                 {
-                    if (_model.RX_Data3[6] == 0)
+                    if (_model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 0)
                     {
                         // NORMAL - MAIN PUMP : STBY MODE & RUN / ST'BY PUMP : STAND BY LAMP ON
-                        if (_model.RX_Data1[3] == 1 && !_model.Overload && !_model.RunLamp && _model.StopLamp && !_model.InitFlag)
+                        if (_model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && !_model.Overload && !_model.RunLamp && _model.StopLamp && !_model.InitFlag)
                         {
                             _model.StandByLamp = true;
                         }
                     }
-                    if (_model.RX_Data3[6] == 1)
+                    if (_model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1)
                     {
                         _model.StandByLamp = false;
                     }
                 }
                 else if (_deviceId == "3")
                 {
-                    if (_model.Overload && _model.RX_Data2[2] == 1)
+                    if (_model.Overload && _model.RX_Data2[CANDataIndices.OVERLOAD] == 1)
                     {
                         // 카운터 리셋
                     }
-                    else if (!_model.Overload && (_model.RX_Data2[2] == 1 || _model.RX_Data2[6] == 0))
+                    else if (!_model.Overload && (_model.RX_Data2[CANDataIndices.OVERLOAD] == 1 || _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 0))
                     {
-                        if (_model.RX_Data2[6] == 0)
+                        if (_model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 0)
                         {
                             // NORMAL - MAIN PUMP : STBY MODE & RUN / ST'BY PUMP : STAND BY LAMP ON
-                            if (_model.RX_Data1[3] == 1 && !_model.Overload && !_model.RunLamp && _model.StopLamp && !_model.InitFlag)
+                            if (_model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && !_model.Overload && !_model.RunLamp && _model.StopLamp && !_model.InitFlag)
                             {
                                 _model.StandByLamp = true;
                             }
                         }
                     }
 
-                    if (_model.RX_Data2[6] == 1)
+                    if (_model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1)
                     {
                         _model.StandByLamp = false;
                     }
                 }
 
-                if (_model.RX_Data1[3] == 0) // MANUAL_MODE
+                if (_model.RX_Data1[CANDataIndices.MODE_STATUS] == 0) // MANUAL_MODE
                 {
                     _model.StandByLamp = false;
                 }
             }
-            else if (_model.RX_Data2[1] == 1 && _model.RX_Data2[6] == 0)
+            else if (_model.RX_Data2[1] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 0)
             {
                 if (_deviceId == "3")
                 {
-                    if (_model.RX_Data1[6] == 0)
+                    if (_model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 0)
                     {
                         // NORMAL - MAIN PUMP : STBY MODE & RUN / ST'BY PUMP : STAND BY LAMP ON
-                        if (_model.RX_Data2[3] == 1 && !_model.Overload && !_model.RunLamp && _model.StopLamp && !_model.InitFlag)
+                        if (_model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && !_model.Overload && !_model.RunLamp && _model.StopLamp && !_model.InitFlag)
                         {
                             _model.StandByLamp = true;
                         }
                     }
-                    if (_model.RX_Data1[6] == 1)
+                    if (_model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1)
                     {
                         _model.StandByLamp = false;
                     }
                 }
                 else if (_deviceId == "1")
                 {
-                    if (_model.Overload && _model.RX_Data3[2] == 1)
+                    if (_model.Overload && _model.RX_Data3[CANDataIndices.OVERLOAD] == 1)
                     {
                         // 카운터 리셋
                     }
-                    else if (!_model.Overload && (_model.RX_Data3[2] == 1 || _model.RX_Data3[6] == 0))
+                    else if (!_model.Overload && (_model.RX_Data3[CANDataIndices.OVERLOAD] == 1 || _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 0))
                     {
-                        if (_model.RX_Data3[6] == 0)
+                        if (_model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 0)
                         {
                             // NORMAL - MAIN PUMP : STBY MODE & RUN / ST'BY PUMP : STAND BY LAMP ON
-                            if (_model.RX_Data2[3] == 1 && !_model.Overload && !_model.RunLamp && _model.StopLamp && !_model.InitFlag)
+                            if (_model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && !_model.Overload && !_model.RunLamp && _model.StopLamp && !_model.InitFlag)
                             {
                                 _model.StandByLamp = true;
                             }
                         }
                     }
 
-                    if (_model.RX_Data3[6] == 1)
+                    if (_model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1)
                     {
                         _model.StandByLamp = false;
                     }
                 }
 
-                if (_model.RX_Data2[3] == 0) // MANUAL_MODE
+                if (_model.RX_Data1[CANDataIndices.MODE_STATUS] == 0) // MANUAL_MODE
                 {
                     _model.StandByLamp = false;
                 }
             }
-            else if (_model.RX_Data3[1] == 1 && _model.RX_Data3[6] == 0)
+            else if (_model.RX_Data3[1] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 0)
             {
                 if (_deviceId == "1")
                 {
-                    if (_model.RX_Data2[6] == 0)
+                    if (_model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 0)
                     {
                         // NORMAL - MAIN PUMP : STBY MODE & RUN / ST'BY PUMP : STAND BY LAMP ON
-                        if (_model.RX_Data3[3] == 1 && !_model.Overload && !_model.RunLamp && _model.StopLamp && !_model.InitFlag)
+                        if (_model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && !_model.Overload && !_model.RunLamp && _model.StopLamp && !_model.InitFlag)
                         {
                             _model.StandByLamp = true;
                         }
                     }
-                    else if (_model.RX_Data2[6] == 1)
+                    else if (_model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1)
                     {
                         _model.StandByLamp = false;
                     }
                 }
                 else if (_deviceId == "2")
                 {
-                    if (_model.Overload && _model.RX_Data1[2] == 1)
+                    if (_model.Overload && _model.RX_Data1[CANDataIndices.OVERLOAD] == 1)
                     {
                         // 카운터 리셋
                     }
-                    else if (!_model.Overload && (_model.RX_Data1[2] == 1 || _model.RX_Data1[6] == 0))
+                    else if (!_model.Overload && (_model.RX_Data1[CANDataIndices.OVERLOAD] == 1 || _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 0))
                     {
-                        if (_model.RX_Data1[6] == 0)
+                        if (_model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 0)
                         {
                             // NORMAL - MAIN PUMP : STBY MODE & RUN / ST'BY PUMP : STAND BY LAMP ON
-                            if (_model.RX_Data3[3] == 1 && !_model.Overload && !_model.RunLamp && _model.StopLamp && !_model.InitFlag)
+                            if (_model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && !_model.Overload && !_model.RunLamp && _model.StopLamp && !_model.InitFlag)
                             {
                                 _model.StandByLamp = true;
                             }
                         }
                     }
 
-                    if (_model.RX_Data1[6] == 1)
+                    if (_model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1)
                     {
                         _model.StandByLamp = false;
                     }
                 }
 
-                if (_model.RX_Data3[3] == 0) // MANUAL_MODE
+                if (_model.RX_Data1[CANDataIndices.MODE_STATUS] == 0) // MANUAL_MODE
                 {
                     _model.StandByLamp = false;
                 }
@@ -1223,9 +1222,9 @@ namespace PSTARV2MonitoringApp.Services
             else
             {
                 // AFTER LOW PRESSURE / OVERLOAD / POWER FAIL - MAIN PUMP
-                if (!_model.Overload && ((_model.RX_Data1[1] == 1 && _model.RX_Data1[6] == 1) ||
-                                        (_model.RX_Data2[1] == 1 && _model.RX_Data2[6] == 1) ||
-                                        (_model.RX_Data3[1] == 1 && _model.RX_Data3[6] == 1)))
+                if (!_model.Overload && ((_model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1) ||
+                                        (_model.RX_Data2[1] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1) ||
+                                        (_model.RX_Data3[1] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1)))
                 {
                     if (_model.ResetButton)
                     {
@@ -1239,9 +1238,9 @@ namespace PSTARV2MonitoringApp.Services
                 // AFTER LOW PRESSURE / OVERLOAD / POWER FAIL - ST'BY PUMP
                 else if (_model.RunLamp && _model.StandByLamp)
                 {
-                    if ((_model.RX_Data1[1] == 0 && _model.RX_Data1[5] == 1) ||
-                        (_model.RX_Data2[1] == 0 && _model.RX_Data2[5] == 1) ||
-                        (_model.RX_Data3[1] == 0 && _model.RX_Data3[5] == 1))
+                    if ((_model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data1[CANDataIndices.RESET_BUTTON] == 1) ||
+                        (_model.RX_Data2[1] == 0 && _model.RX_Data1[CANDataIndices.RESET_BUTTON] == 1) ||
+                        (_model.RX_Data3[1] == 0 && _model.RX_Data1[CANDataIndices.RESET_BUTTON] == 1))
                     {
                         _model.StandByLamp = false; // CHANGE MAIN PUMP (STBY -> MAIN)
                         if (_model.StandBy_3_1RUN_Flag == true)
@@ -1263,66 +1262,66 @@ namespace PSTARV2MonitoringApp.Services
         {
             if (_deviceId == "1" && _model.StandByLamp)
             {
-                if (_model.RX_Data2[2] == 0 && _model.RX_Data3[2] == 0)
+                if (_model.RX_Data2[CANDataIndices.OVERLOAD] == 0 && _model.RX_Data3[CANDataIndices.OVERLOAD] == 0)
                 {
-                    if (_model.RX_Data2[1] == 0 && _model.RX_Data2[3] == 1 && !_model.RunLamp)
+                    if (_model.RX_Data2[1] == 0 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && !_model.RunLamp)
                         _model.StandByLamp = false;
-                    else if (_model.RX_Data2[1] == 1 && _model.RX_Data2[3] == 0)
+                    else if (_model.RX_Data2[1] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 0)
                         _model.StandByLamp = false;
                 }
-                else if (_model.RX_Data2[1] == 0 && _model.RX_Data2[2] == 0 && _model.RX_Data2[3] == 1 && !_model.RunLamp)
+                else if (_model.RX_Data2[1] == 0 && _model.RX_Data2[CANDataIndices.OVERLOAD] == 0 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && !_model.RunLamp)
                 {
                     _model.StandByLamp = false;
                 }
-                else if (_model.RX_Data3[1] == 0 && _model.RX_Data3[2] == 0 && _model.RX_Data3[3] == 1 && !_model.RunLamp)
+                else if (_model.RX_Data3[1] == 0 && _model.RX_Data3[CANDataIndices.OVERLOAD] == 0 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && !_model.RunLamp)
                 {
                     _model.StandByLamp = false;
                 }
-                else if (_model.RX_Data2[2] == 1 && _model.RX_Data3[2] == 1 && !_model.RunLamp)
+                else if (_model.RX_Data2[CANDataIndices.OVERLOAD] == 1 && _model.RX_Data3[CANDataIndices.OVERLOAD] == 1 && !_model.RunLamp)
                 {
                     _model.StandByLamp = false;
                 }
             }
             else if (_deviceId == "2" && _model.StandByLamp)
             {
-                if (_model.RX_Data3[2] == 0 && _model.RX_Data1[2] == 0)
+                if (_model.RX_Data3[CANDataIndices.OVERLOAD] == 0 && _model.RX_Data1[CANDataIndices.OVERLOAD] == 0)
                 {
-                    if (_model.RX_Data3[1] == 0 && _model.RX_Data3[3] == 1 && !_model.RunLamp)
+                    if (_model.RX_Data3[1] == 0 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && !_model.RunLamp)
                         _model.StandByLamp = false;
-                    else if (_model.RX_Data3[1] == 1 && _model.RX_Data3[3] == 0)
+                    else if (_model.RX_Data3[1] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 0)
                         _model.StandByLamp = false;
                 }
-                else if (_model.RX_Data1[1] == 0 && _model.RX_Data1[2] == 0 && _model.RX_Data1[3] == 1 && !_model.RunLamp)
+                else if (_model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data1[CANDataIndices.OVERLOAD] == 0 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && !_model.RunLamp)
                 {
                     _model.StandByLamp = false;
                 }
-                else if (_model.RX_Data3[1] == 0 && _model.RX_Data3[2] == 0 && _model.RX_Data3[3] == 1 && !_model.RunLamp)
+                else if (_model.RX_Data3[1] == 0 && _model.RX_Data3[CANDataIndices.OVERLOAD] == 0 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && !_model.RunLamp)
                 {
                     _model.StandByLamp = false;
                 }
-                else if (_model.RX_Data3[2] == 1 && _model.RX_Data1[2] == 1 && !_model.RunLamp)
+                else if (_model.RX_Data3[CANDataIndices.OVERLOAD] == 1 && _model.RX_Data1[CANDataIndices.OVERLOAD] == 1 && !_model.RunLamp)
                 {
                     _model.StandByLamp = false;
                 }
             }
             else if (_deviceId == "3" && _model.StandByLamp)
             {
-                if (_model.RX_Data1[2] == 0 && _model.RX_Data2[2] == 0)
+                if (_model.RX_Data1[CANDataIndices.OVERLOAD] == 0 && _model.RX_Data2[CANDataIndices.OVERLOAD] == 0)
                 {
-                    if (_model.RX_Data1[1] == 0 && _model.RX_Data1[3] == 1 && !_model.RunLamp)
+                    if (_model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && !_model.RunLamp)
                         _model.StandByLamp = false;
-                    else if (_model.RX_Data1[1] == 1 && _model.RX_Data1[3] == 0)
+                    else if (_model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 0)
                         _model.StandByLamp = false;
                 }
-                else if (_model.RX_Data1[1] == 0 && _model.RX_Data1[2] == 0 && _model.RX_Data1[3] == 1 && !_model.RunLamp)
+                else if (_model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data1[CANDataIndices.OVERLOAD] == 0 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && !_model.RunLamp)
                 {
                     _model.StandByLamp = false;
                 }
-                else if (_model.RX_Data2[1] == 0 && _model.RX_Data2[2] == 0 && _model.RX_Data2[3] == 1 && !_model.RunLamp)
+                else if (_model.RX_Data2[1] == 0 && _model.RX_Data2[CANDataIndices.OVERLOAD] == 0 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && !_model.RunLamp)
                 {
                     _model.StandByLamp = false;
                 }
-                else if (_model.RX_Data1[2] == 1 && _model.RX_Data2[2] == 1 && !_model.RunLamp)
+                else if (_model.RX_Data1[CANDataIndices.OVERLOAD] == 1 && _model.RX_Data2[CANDataIndices.OVERLOAD] == 1 && !_model.RunLamp)
                 {
                     _model.StandByLamp = false;
                 }
@@ -1338,7 +1337,7 @@ namespace PSTARV2MonitoringApp.Services
             if (_model.Error_Flag1 == false && _deviceId != "1")
             {
                 // AFTER LOW PRESSURE / OVERLOAD / POWER FAIL - MAIN PUMP
-                if (!_model.Overload && (_model.RX_Data1[1] == 1 && _model.RX_Data1[6] == 1))
+                if (!_model.Overload && (_model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1))
                 {
                     if (_model.ResetButton)
                     {
@@ -1352,7 +1351,7 @@ namespace PSTARV2MonitoringApp.Services
                 // AFTER LOW PRESSURE / OVERLOAD / POWER FAIL - ST'BY PUMP
                 else if (_model.RunLamp && _model.StandByLamp)
                 {
-                    if (_model.RX_Data1[1] == 0 && _model.RX_Data1[5] == 1)
+                    if (_model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data1[CANDataIndices.RESET_BUTTON] == 1)
                     {
                         _model.StandByLamp = false; // CHANGE MAIN PUMP (STBY -> MAIN)
                         if (_model.StandBy_3_1RUN_Flag == true)
@@ -1362,17 +1361,17 @@ namespace PSTARV2MonitoringApp.Services
                     }
                 }
                 // NORMAL - MAIN PUMP : STBY MODE & RUN / ST'BY PUMP : STAND BY LAMP ON
-                else if (_model.RX_Data1[1] == 1 && _model.RX_Data1[3] == 1 && !_model.Overload && !_model.RunLamp && !_model.InitFlag && _model.StopLamp)
+                else if (_model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && !_model.Overload && !_model.RunLamp && !_model.InitFlag && _model.StopLamp)
                 {
                     _model.StandByLamp = true;
                 }
                 // NORMAL - MAIN PUMP : STBY MODE & RUN -> STOP / ST'BY PUMP : STAND BY LAMP ON -> OFF
-                else if (_model.StandBy_3_1RUN_Flag == false && _model.RX_Data1[1] == 0 && _model.RX_Data1[2] == 0 && _model.RX_Data1[3] == 1 && !_model.RunLamp)
+                else if (_model.StandBy_3_1RUN_Flag == false && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data1[CANDataIndices.OVERLOAD] == 0 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && !_model.RunLamp)
                 {
                     _model.StandByLamp = false;
                 }
                 // NORMAL - MAIN PUMP : MANUAL MODE & RUN / ST'BY PUMP : STAND BY LAMP OFF
-                else if (_model.RX_Data1[1] == 1 && _model.RX_Data1[3] == 0)
+                else if (_model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 0)
                 {
                     _model.StandByLamp = false;
                 }
@@ -1380,7 +1379,7 @@ namespace PSTARV2MonitoringApp.Services
             else if (_model.Error_Flag2 == false && _deviceId != "2")
             {
                 // AFTER LOW PRESSURE / OVERLOAD / POWER FAIL - MAIN PUMP
-                if (!_model.Overload && (_model.RX_Data2[1] == 1 && _model.RX_Data2[6] == 1))
+                if (!_model.Overload && (_model.RX_Data2[1] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1))
                 {
                     if (_model.ResetButton)
                     {
@@ -1394,7 +1393,7 @@ namespace PSTARV2MonitoringApp.Services
                 // AFTER LOW PRESSURE / OVERLOAD / POWER FAIL - ST'BY PUMP
                 else if (_model.RunLamp && _model.StandByLamp)
                 {
-                    if (_model.RX_Data2[1] == 0 && _model.RX_Data2[5] == 1)
+                    if (_model.RX_Data2[1] == 0 && _model.RX_Data1[CANDataIndices.RESET_BUTTON] == 1)
                     {
                         _model.StandByLamp = false; // CHANGE MAIN PUMP (STBY -> MAIN)
                         if (_model.StandBy_3_1RUN_Flag == true)
@@ -1404,17 +1403,17 @@ namespace PSTARV2MonitoringApp.Services
                     }
                 }
                 // NORMAL - MAIN PUMP : STBY MODE & RUN / ST'BY PUMP : STAND BY LAMP ON
-                else if (_model.RX_Data2[1] == 1 && _model.RX_Data2[3] == 1 && !_model.Overload && !_model.RunLamp && !_model.InitFlag && _model.StopLamp)
+                else if (_model.RX_Data2[1] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && !_model.Overload && !_model.RunLamp && !_model.InitFlag && _model.StopLamp)
                 {
                     _model.StandByLamp = true;
                 }
                 // NORMAL - MAIN PUMP : STBY MODE & RUN -> STOP / ST'BY PUMP : STAND BY LAMP ON -> OFF
-                else if (_model.StandBy_3_1RUN_Flag == false && _model.RX_Data2[1] == 0 && _model.RX_Data2[2] == 0 && _model.RX_Data2[3] == 1 && !_model.RunLamp)
+                else if (_model.StandBy_3_1RUN_Flag == false && _model.RX_Data2[1] == 0 && _model.RX_Data2[CANDataIndices.OVERLOAD] == 0 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && !_model.RunLamp)
                 {
                     _model.StandByLamp = false;
                 }
                 // NORMAL - MAIN PUMP : MANUAL MODE & RUN / ST'BY PUMP : STAND BY LAMP OFF
-                else if (_model.RX_Data2[1] == 1 && _model.RX_Data2[3] == 0)
+                else if (_model.RX_Data2[1] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 0)
                 {
                     _model.StandByLamp = false;
                 }
@@ -1422,7 +1421,7 @@ namespace PSTARV2MonitoringApp.Services
             else if (_model.Error_Flag3 == false && _deviceId != "3")
             {
                 // AFTER LOW PRESSURE / OVERLOAD / POWER FAIL - MAIN PUMP
-                if (!_model.Overload && (_model.RX_Data3[1] == 1 && _model.RX_Data3[6] == 1))
+                if (!_model.Overload && (_model.RX_Data3[1] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1))
                 {
                     if (_model.ResetButton)
                     {
@@ -1436,7 +1435,7 @@ namespace PSTARV2MonitoringApp.Services
                 // AFTER LOW PRESSURE / OVERLOAD / POWER FAIL - ST'BY PUMP
                 else if (_model.RunLamp && _model.StandByLamp)
                 {
-                    if (_model.RX_Data3[1] == 0 && _model.RX_Data3[5] == 1)
+                    if (_model.RX_Data3[1] == 0 && _model.RX_Data1[CANDataIndices.RESET_BUTTON] == 1)
                     {
                         _model.StandByLamp = false; // CHANGE MAIN PUMP (STBY -> MAIN)
                         if (_model.StandBy_3_1RUN_Flag == true)
@@ -1446,17 +1445,17 @@ namespace PSTARV2MonitoringApp.Services
                     }
                 }
                 // NORMAL - MAIN PUMP : STBY MODE & RUN / ST'BY PUMP : STAND BY LAMP ON
-                else if (_model.RX_Data3[1] == 1 && _model.RX_Data3[3] == 1 && !_model.Overload && !_model.RunLamp && !_model.InitFlag && _model.StopLamp)
+                else if (_model.RX_Data3[1] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && !_model.Overload && !_model.RunLamp && !_model.InitFlag && _model.StopLamp)
                 {
                     _model.StandByLamp = true;
                 }
                 // NORMAL - MAIN PUMP : STBY MODE & RUN -> STOP / ST'BY PUMP : STAND BY LAMP ON -> OFF
-                else if (_model.StandBy_3_1RUN_Flag == false && _model.RX_Data3[1] == 0 && _model.RX_Data3[2] == 0 && _model.RX_Data3[3] == 1 && !_model.RunLamp)
+                else if (_model.StandBy_3_1RUN_Flag == false && _model.RX_Data3[1] == 0 && _model.RX_Data3[CANDataIndices.OVERLOAD] == 0 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && !_model.RunLamp)
                 {
                     _model.StandByLamp = false;
                 }
                 // NORMAL - MAIN PUMP : MANUAL MODE & RUN / ST'BY PUMP : STAND BY LAMP OFF
-                else if (_model.RX_Data3[1] == 1 && _model.RX_Data3[3] == 0)
+                else if (_model.RX_Data3[1] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 0)
                 {
                     _model.StandByLamp = false;
                 }
@@ -1479,6 +1478,7 @@ namespace PSTARV2MonitoringApp.Services
                 {
                     _model.RunStatus = true;
                     _model.ResetButton = false;
+                    _model.RunLamp = true;
 
                     // 상태 변경 시 로직 실행
                     ExecutePSTARLogic();
@@ -1495,6 +1495,7 @@ namespace PSTARV2MonitoringApp.Services
 
             _model.RunStatus = false;
             _model.ResetButton = true;
+            _model.RunLamp = false;
 
             // 상태 변경 시 로직 실행
             ExecutePSTARLogic();

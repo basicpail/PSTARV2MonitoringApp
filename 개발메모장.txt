@@ -178,3 +178,7 @@ DataReceived 이벤트핸들러 어디서 호출되는지 파악
 DeviceService에서 powerfail상황 구현
 
 LAMP가 갑자기 안들어온다.
+
+
+
+NotifyStateChanged를 통해서 DeviceService에서 사용하는 CAN Frame 값이 바뀐다!!
