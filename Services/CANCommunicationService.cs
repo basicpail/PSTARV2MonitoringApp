@@ -387,7 +387,7 @@ namespace PSTARV2MonitoringApp.Services
                         if (_transmittedFrames.Count > 0)
                         {
                             frame = _transmittedFrames.Dequeue();
-                            Console.WriteLine($"{DateTime.Now} 테스트 프레임 수신(재확인):   ID=0x{frame.Id:X3}, Data={frame.DataAsHex}");
+                            Console.WriteLine($"{DateTime.Now} 테스트 프레임 수신(재확인):    ID=0x{frame.Id:X3}, Data={frame.DataAsHex}");
                         }
                     }
                 }
@@ -427,7 +427,7 @@ namespace PSTARV2MonitoringApp.Services
                 {
                     lock (_queueLock)
                     {
-                        Console.WriteLine($"{DateTime.Now} 테스트 프레임 전송: ID=0x{frame.Id:X3}, Data={frame.DataAsHex}");
+                        //Console.WriteLine($"{DateTime.Now} 테스트 프레임 전송: ID=0x{frame.Id:X3}, Data={frame.DataAsHex}");
                         // 큐 크기 제한
                         if (_transmittedFrames.Count >= 10)
                             _transmittedFrames.Dequeue();

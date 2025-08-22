@@ -379,7 +379,7 @@ namespace PSTARV2MonitoringApp.Models
                     _txLowpress = value;
                     //_isLowPressure = value;
                     OnPropertyChanged(nameof(TXLowpress));
-                    StateChanged?.Invoke(this, EventArgs.Empty);
+                    //StateChanged?.Invoke(this, EventArgs.Empty); //desperate
                 }
             }
         }

@@ -57,7 +57,7 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
                 // PSTAR 모델 생성 및 이벤트 연결
                 _deviceService = new PSTARDeviceService(deviceId);
                 _deviceService.CANDataTransmitted += OnPumpCANDataTransmitted; //DeviceService에서 TransmitCANData 호출 시 이벤트 발생
-                _deviceService.DeviceStateChanged += OnDeviceStateChanged;
+                //_deviceService.DeviceStateChanged += OnDeviceStateChanged; //desperate
 
                 // 중요: 펌프 모델에 장치 모델 설정
                 _deviceService.SetModel(DeviceModel);
@@ -152,9 +152,11 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
 
         /// <summary>
         /// 장치 상태 변경 이벤트 처리
+        /// desperate
         /// </summary>
         private void OnDeviceStateChanged(object sender, DeviceStateChangedEventArgs e)
         {
+            //DeviceStateChangedEventArgs e 는 사용하지 않는다..
             // UI 스레드에서 업데이트 (DeviceModel은 자동으로 업데이트됨)
             Application.Current.Dispatcher.Invoke(() => {
                 OnPropertyChanged(nameof(DeviceModel));

@@ -332,7 +332,7 @@ namespace PSTARV2MonitoringApp.Services
             if (_model == null) return;
 
             // 펌웨어 main() 함수 상단부의 로직
-            _model.TXLowpress = _model.TxLowpressInternal;
+            //_model.TXLowpress = _model.TxLowpressInternal;
         }
 
         /// <summary>
@@ -1556,19 +1556,21 @@ namespace PSTARV2MonitoringApp.Services
 
         /// <summary>
         /// 상태 변경 알림
+        /// desperate
         /// </summary>
         private void NotifyStateChanged()
         {
-            if (_model == null) return;
+            //if (_model == null) return;
 
-            DeviceStateChanged?.Invoke(this, new DeviceStateChangedEventArgs
-            {
-                DeviceId = _deviceId,
-                IsRunning = _model.RunStatus,
-                IsStandByMode = _model.ModeStatus,
-                IsHeating = _model.HeatStatus,
-                IsStandByLamp = _model.StandByLamp
-            });
+            //DeviceStateChanged?.Invoke(this, new DeviceStateChangedEventArgs
+            //{
+            //    DeviceId = _deviceId,
+            //    IsRunning = _model.RunStatus,
+            //    IsStandByMode = _model.ModeStatus,
+            //    IsHeating = _model.HeatStatus,
+            //    IsStandByLamp = _model.StandByLamp,
+            //    TXLowpress  = _model.TXLowpress
+            //});
         }
 
         /// <summary>
@@ -1590,6 +1592,7 @@ namespace PSTARV2MonitoringApp.Services
 
     /// <summary>
     /// 장치 상태 변경 이벤트 인수
+    /// desperate
     /// </summary>
     public class DeviceStateChangedEventArgs : EventArgs
     {
@@ -1598,5 +1601,6 @@ namespace PSTARV2MonitoringApp.Services
         public bool IsStandByMode { get; set; }
         public bool IsHeating { get; set; }
         public bool IsStandByLamp { get; set; }
+        public bool TXLowpress { get; set; }
     }
 }

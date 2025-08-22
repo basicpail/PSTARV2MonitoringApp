@@ -34,6 +34,12 @@ namespace PSTARV2MonitoringApp.ViewModels.Windows
                 Content = "Settings",
                 Icon = new SymbolIcon { Symbol = SymbolRegular.Settings24 },
                 TargetPageType = typeof(Views.Pages.SettingsPage)
+            },
+            new NavigationViewItem()
+            {
+                Content = "Help",
+                Icon = new SymbolIcon { Symbol = SymbolRegular.ChatHelp24 },
+                TargetPageType = typeof(Views.Pages.HelpPage)
             }
         };
 
