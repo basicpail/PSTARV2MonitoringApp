@@ -58,7 +58,7 @@
             <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="BorderThickness" Value="1"/>
         </Style>
-        
+
 
         <Style x:Key="CardBorderStyle" TargetType="Border">
             <Setter Property="Margin" Value="0,0,5,0"/>
@@ -70,7 +70,9 @@
         </Style>
     </Page.Resources>
 
-    <Grid Margin="16">
+    <Grid Margin="16"
+        SnapsToDevicePixels="True"
+        UseLayoutRounding="True">
         <Grid.RowDefinitions>
             <RowDefinition Height="auto"/>
             <RowDefinition Height="*"/>
@@ -116,78 +118,46 @@
             </Grid.ColumnDefinitions>
 
             <!-- Card 1 -->
-            <Border Grid.Column="0" Style="{StaticResource CardBorderStyle}">
-                <ui:Card
-                    Background="#323232"
-                    BorderBrush="#434343"
-                    BorderThickness="1"
-                    HorizontalContentAlignment="Stretch"
-                    VerticalContentAlignment="Stretch"
-                    Width="Auto"
-                    Height="Auto">
-                    <Grid x:Name="DevicePanelCard1">
-                    </Grid>
-                </ui:Card>
+            <Border Grid.Column="0" Style="{StaticResource Card}" Margin="0,0,10,0">
+                <Grid x:Name="DevicePanelCard1"/>
             </Border>
 
             <!-- Card 2 -->
-            <Border Grid.Column="1" Style="{StaticResource CardBorderStyle}">
-                <ui:Card
-                    Background="#323232"
-                    BorderBrush="#434343"
-                    BorderThickness="1"
-                    HorizontalContentAlignment="Stretch"
-                    VerticalContentAlignment="Stretch"
-                    Width="Auto"
-                    Height="Auto">
-                    <Grid x:Name="DevicePanelCard2">
-                        <!--<Image Source="/Assets/DeviceImages/PSTAR-V2-5-H.png"
-                           Stretch="Uniform" 
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center"/>-->         
-                    </Grid>
-                </ui:Card>
+            <Border Grid.Column="1" Style="{StaticResource Card}" Margin="0,0,10,0">
+                <Grid x:Name="DevicePanelCard2"/>
             </Border>
 
             <!-- Card 3 -->
-            <Border Grid.Column="2" Style="{StaticResource CardBorderStyle}">
-                <ui:Card
-                    Background="#323232"
-                    BorderBrush="#434343"
-                    BorderThickness="1"
-                    HorizontalContentAlignment="Stretch"
-                    VerticalContentAlignment="Stretch"
-                    Width="Auto"
-                    Height="Auto">
-                    <Grid x:Name="DevicePanelCard3">
-                    </Grid>
-                </ui:Card>
+            <Border Grid.Column="2" Style="{StaticResource Card}" Margin="0,0,10,0">
+                <Grid x:Name="DevicePanelCard3"/>
             </Border>
 
-            <Grid Grid.Column="3" Margin="0,0,0,0">
-                <!-- DataGrid -->
-                <DataGrid Grid.Row="1"
-                    ItemsSource="{Binding ViewModel.DeviceLogs}"
-                    AutoGenerateColumns="False"
-                    ColumnHeaderStyle="{StaticResource GridHeaderStyle}"
-                    CellStyle="{StaticResource GridCellStyle}"
-                    RowStyle="{StaticResource NoCornerRadiusRowStyle}"
-                    CanUserAddRows="False"
-                    HeadersVisibility="Column"
-                    GridLinesVisibility="All"
-                    RowBackground="#101010"
-                    AlternatingRowBackground="#212121"
-                    IsReadOnly="True"
-                    BorderBrush="#646464"
-                    BorderThickness="1"
-                    Background="#000000">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="Time"     Binding="{Binding Date, StringFormat=HH:mm:ss}" Width ="2*" MinWidth="80"/>
-                        <DataGridTextColumn Header="ID"       Binding="{Binding Id}"                          Width="*" MinWidth="60"/>
-                        <DataGridTextColumn Header="Action" Binding="{Binding Contents}"                    Width="6*"/>
-                    </DataGrid.Columns>
-                </DataGrid>
+
+            <Grid Grid.Column="3">
+                <Border Style="{StaticResource Card}">
+
+                    <!-- DataGrid -->
+                    <DataGrid Grid.Row="1"
+                        ItemsSource="{Binding ViewModel.DeviceLogs}"
+                        AutoGenerateColumns="False"
+                        RowStyle="{StaticResource ElevatedRow}"
+                        CanUserAddRows="False"
+                        HeadersVisibility="Column"
+                        GridLinesVisibility="All"
+                        AlternatingRowBackground="{StaticResource AlternatingRowBackground}"
+                        Background="{StaticResource DataGridBg}"
+                        Foreground="{StaticResource TextMain}"
+                        IsReadOnly="True"
+                        >
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Time"     Binding="{Binding Date, StringFormat=HH:mm:ss}" Width ="2*" MinWidth="80"/>
+                            <DataGridTextColumn Header="ID"       Binding="{Binding Id}"                          Width="*" MinWidth="60"/>
+                            <DataGridTextColumn Header="Action" Binding="{Binding Contents}"                    Width="6*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Border>
             </Grid>
         </Grid>
     </Grid>
 </Page>
+

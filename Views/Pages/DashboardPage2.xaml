@@ -1,0 +1,426 @@
+﻿<Page x:Class="PSTARV2MonitoringApp.Views.Pages.DashboardPage2"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:PSTARV2MonitoringApp.Views.Pages"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      mc:Ignorable="d" 
+      d:DesignHeight="1080" d:DesignWidth="1920"
+      d:DataContext="{d:DesignInstance local:DashboardPage2,
+                                 IsDesignTimeCreatable=False}"
+      Title="DashboardPage2">
+
+    <!-- =====================  Layout  ===================== -->
+    <DockPanel SizeChanged="DockPanelSizeChanged">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="2*"/>
+                <RowDefinition Height="1.2*"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.4*"/>
+                <ColumnDefinition Width="2*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 종합 상황 정보 (교체본) -->
+            <Border x:Name="SituationInfoDataGrid" Grid.Row="0" Grid.Column="0" Style="{StaticResource Card}" MinHeight="300"  VerticalAlignment="Stretch">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <ContentPresenter Content="종합 상황 정보" Uid="&#xE8EF;" ContentTemplate="{StaticResource CardHeaderTemplate}"/>
+
+                    <DataGrid Grid.Row="1"
+                              ItemsSource="{Binding ViewModel.LogItems}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              CanUserAddRows="False" CanUserDeleteRows="False"
+                              HeadersVisibility="Column"
+                              GridLinesVisibility="None"
+                              ColumnHeaderStyle="{StaticResource StrongHeader}"
+                              RowStyle="{StaticResource ElevatedRow}"
+                              AlternationCount="2"
+                              AlternatingRowBackground="{StaticResource AlternatingRowBackground}"
+                              RowHeight="30"
+                              ColumnHeaderHeight="32"
+                              VirtualizingPanel.IsVirtualizing="True"
+                              VirtualizingPanel.VirtualizationMode="Recycling"
+                              VirtualizingPanel.ScrollUnit="Pixel"
+                              EnableRowVirtualization="True"
+                              EnableColumnVirtualization="True"
+                              ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                              ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="시간"   Binding="{Binding Timestamp}" Width="0.20*"/>
+                            <DataGridTextColumn Header="장치 ID" Binding="{Binding DeviceId}"  Width="0.16*"/>
+                            <DataGridTextColumn Header="상황 정보" Binding="{Binding Message}"   Width="*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+
+
+            <!-- Raw Data 카드 (교체본) -->
+            <Border x:Name="RawDataDataGrid" Grid.Row="0" Grid.Column="1" Style="{StaticResource Card}" MinHeight="300" VerticalAlignment="Stretch">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- 헤더 -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ContentPresenter Content="Raw Data" Uid="&#xE9D2;" ContentTemplate="{StaticResource CardHeaderTemplate}"/>
+                        <!-- ID 필터 / 전체토글 (기존 바인딩 그대로 사용) -->
+                        <ComboBox Grid.Column="1" Width="120" Height="25" Margin="8,0,0,0"
+                              ItemsSource="{Binding AvailableCanIds}"
+                              SelectedItem="{Binding SelectedCanIdFilter}"/>
+                        <CheckBox Grid.Column="2" Margin="8,0,0,0"
+                              VerticalAlignment="Center"
+                              Foreground="{StaticResource TextSub}"
+                              Content="모든 데이터"
+                              IsChecked="{Binding ShowAllCanMessages}"/>
+                    </Grid>
+
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding ViewModel.RawDataItems}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              CanUserAddRows="False" CanUserDeleteRows="False"
+                              HeadersVisibility="Column"
+                              GridLinesVisibility="None"
+                              ColumnHeaderStyle="{StaticResource StrongHeader}"
+                              RowStyle="{StaticResource ElevatedRow}"
+                              AlternationCount="2"
+                              AlternatingRowBackground="{StaticResource AlternatingRowBackground}"
+                              RowHeight="30"
+                              ColumnHeaderHeight="32"
+                              FrozenColumnCount="2"
+                              VirtualizingPanel.IsVirtualizing="True" 
+                              VirtualizingPanel.VirtualizationMode="Recycling"
+                              VirtualizingPanel.ScrollUnit="Pixel"
+                              EnableRowVirtualization="True"
+                              EnableColumnVirtualization="True"
+                              ScrollViewer.CanContentScroll="True"
+                              ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                              ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <DataGrid.Columns>
+                            <!-- 좌측 고정 2열 -->
+                            <DataGridTextColumn Header="시간" Binding="{Binding Timestamp}" Width="0.16*"/>
+                            <DataGridTextColumn Header="CAN ID" Binding="{Binding CanId}" Width="0.10*"/>
+
+                            <!-- 배지 컬럼 패턴: 기본 OFF, True/ON/1 일 때 ON 색상 -->
+                            <!-- STBY -->
+                            <DataGridTemplateColumn Header="STBY Start">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border x:Name="pill" Style="{StaticResource PillBase}">
+                                            <TextBlock x:Name="txt" Text="OFF" HorizontalAlignment="Center" Foreground="{StaticResource TextSub}"/>
+                                        </Border>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding STBY_Start}" Value="True">
+                                                <Setter TargetName="pill" Property="Background" Value="#14362A"/>
+                                                <Setter TargetName="pill" Property="BorderBrush" Value="#2AAE84"/>
+                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
+                                                <Setter TargetName="txt"  Property="Foreground" Value="#8FF2C7"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding STBY_Start}" Value="ON">
+                                                <Setter TargetName="pill" Property="Background" Value="#14362A"/>
+                                                <Setter TargetName="pill" Property="BorderBrush" Value="#2AAE84"/>
+                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
+                                                <Setter TargetName="txt"  Property="Foreground" Value="#8FF2C7"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding STBY_Start}" Value="1">
+                                                <Setter TargetName="pill" Property="Background" Value="#14362A"/>
+                                                <Setter TargetName="pill" Property="BorderBrush" Value="#2AAE84"/>
+                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
+                                                <Setter TargetName="txt"  Property="Foreground" Value="#8FF2C7"/>
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.Width>0.12*</DataGridTemplateColumn.Width>
+                            </DataGridTemplateColumn>
+
+                            <!-- Run Lamp -->
+                            <DataGridTemplateColumn Header="Run Lamp">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border x:Name="pill" Style="{StaticResource PillBase}">
+                                            <TextBlock x:Name="txt" Text="OFF" HorizontalAlignment="Center" Foreground="{StaticResource TextSub}"/>
+                                        </Border>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding RunLamp}" Value="True">
+                                                <Setter TargetName="pill" Property="Background" Value="#132E49"/>
+                                                <Setter TargetName="pill" Property="BorderBrush" Value="#58A9F8"/>
+                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
+                                                <Setter TargetName="txt"  Property="Foreground" Value="#BFE0FF"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding RunLamp}" Value="ON">
+                                                <Setter TargetName="pill" Property="Background" Value="#132E49"/>
+                                                <Setter TargetName="pill" Property="BorderBrush" Value="#58A9F8"/>
+                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
+                                                <Setter TargetName="txt"  Property="Foreground" Value="#BFE0FF"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding RunLamp}" Value="1">
+                                                <Setter TargetName="pill" Property="Background" Value="#132E49"/>
+                                                <Setter TargetName="pill" Property="BorderBrush" Value="#58A9F8"/>
+                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
+                                                <Setter TargetName="txt"  Property="Foreground" Value="#BFE0FF"/>
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.Width>0.13*</DataGridTemplateColumn.Width>
+                            </DataGridTemplateColumn>
+
+                            <!-- Overload -->
+                            <DataGridTemplateColumn Header="Overload">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border x:Name="pill" Style="{StaticResource PillBase}">
+                                            <TextBlock x:Name="txt" Text="OFF" HorizontalAlignment="Center" Foreground="{StaticResource TextSub}"/>
+                                        </Border>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding Overload}" Value="True">
+                                                <Setter TargetName="pill" Property="Background" Value="#3A1D1D"/>
+                                                <Setter TargetName="pill" Property="BorderBrush" Value="#E57373"/>
+                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
+                                                <Setter TargetName="txt"  Property="Foreground" Value="#FFC1C1"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Overload}" Value="ON">
+                                                <Setter TargetName="pill" Property="Background" Value="#3A1D1D"/>
+                                                <Setter TargetName="pill" Property="BorderBrush" Value="#E57373"/>
+                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
+                                                <Setter TargetName="txt"  Property="Foreground" Value="#FFC1C1"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Overload}" Value="1">
+                                                <Setter TargetName="pill" Property="Background" Value="#3A1D1D"/>
+                                                <Setter TargetName="pill" Property="BorderBrush" Value="#E57373"/>
+                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
+                                                <Setter TargetName="txt"  Property="Foreground" Value="#FFC1C1"/>
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.Width>0.13*</DataGridTemplateColumn.Width>
+                            </DataGridTemplateColumn>
+
+                            <!-- Mode / Run Req / Reset Btn / StandBy / TXLow → 텍스트 or 배지 -->
+                            <DataGridTextColumn Header="Mode"   Binding="{Binding ModeStatus}" Width="0.12*"/>
+                            <DataGridTemplateColumn Header="Run Req">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border x:Name="pill" Style="{StaticResource PillBase}">
+                                            <TextBlock x:Name="txt" Text="OFF" HorizontalAlignment="Center" Foreground="{StaticResource TextSub}"/>
+                                        </Border>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding RUN_req}" Value="True">
+                                                <Setter TargetName="pill" Property="Background" Value="#1E2E1C"/>
+                                                <Setter TargetName="pill" Property="BorderBrush" Value="#85C47C"/>
+                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
+                                                <Setter TargetName="txt"  Property="Foreground" Value="#CFEFD0"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding RUN_req}" Value="ON">
+                                                <Setter TargetName="pill" Property="Background" Value="#1E2E1C"/>
+                                                <Setter TargetName="pill" Property="BorderBrush" Value="#85C47C"/>
+                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
+                                                <Setter TargetName="txt"  Property="Foreground" Value="#CFEFD0"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding RUN_req}" Value="1">
+                                                <Setter TargetName="pill" Property="Background" Value="#1E2E1C"/>
+                                                <Setter TargetName="pill" Property="BorderBrush" Value="#85C47C"/>
+                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
+                                                <Setter TargetName="txt"  Property="Foreground" Value="#CFEFD0"/>
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.Width>0.13*</DataGridTemplateColumn.Width>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Header="Reset Btn">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border x:Name="pill" Style="{StaticResource PillBase}">
+                                            <TextBlock x:Name="txt" Text="OFF" HorizontalAlignment="Center" Foreground="{StaticResource TextSub}"/>
+                                        </Border>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding ResetButton}" Value="True">
+                                                <Setter TargetName="pill" Property="Background" Value="#2D2A12"/>
+                                                <Setter TargetName="pill" Property="BorderBrush" Value="#CFB253"/>
+                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
+                                                <Setter TargetName="txt"  Property="Foreground" Value="#FAE8A6"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding ResetButton}" Value="ON">
+                                                <Setter TargetName="pill" Property="Background" Value="#2D2A12"/>
+                                                <Setter TargetName="pill" Property="BorderBrush" Value="#CFB253"/>
+                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
+                                                <Setter TargetName="txt"  Property="Foreground" Value="#FAE8A6"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding ResetButton}" Value="1">
+                                                <Setter TargetName="pill" Property="Background" Value="#2D2A12"/>
+                                                <Setter TargetName="pill" Property="BorderBrush" Value="#CFB253"/>
+                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
+                                                <Setter TargetName="txt"  Property="Foreground" Value="#FAE8A6"/>
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.Width>0.13*</DataGridTemplateColumn.Width>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Header="StandBy">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border x:Name="pill" Style="{StaticResource PillBase}">
+                                            <TextBlock x:Name="txt" Text="OFF" HorizontalAlignment="Center" Foreground="{StaticResource TextSub}"/>
+                                        </Border>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding StandByLamp}" Value="True">
+                                                <Setter TargetName="pill" Property="Background" Value="#26283B"/>
+                                                <Setter TargetName="pill" Property="BorderBrush" Value="#9C95FF"/>
+                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
+                                                <Setter TargetName="txt"  Property="Foreground" Value="#D8D5FF"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding StandByLamp}" Value="ON">
+                                                <Setter TargetName="pill" Property="Background" Value="#26283B"/>
+                                                <Setter TargetName="pill" Property="BorderBrush" Value="#9C95FF"/>
+                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
+                                                <Setter TargetName="txt"  Property="Foreground" Value="#D8D5FF"/>
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.Width>0.13*</DataGridTemplateColumn.Width>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Header="LowPress">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border x:Name="pill" Style="{StaticResource PillBase}">
+                                            <TextBlock x:Name="txt" Text="OFF" HorizontalAlignment="Center" Foreground="{StaticResource TextSub}"/>
+                                        </Border>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding TXLowpress}" Value="True">
+                                                <Setter TargetName="pill" Property="Background" Value="#3A1D1D"/>
+                                                <Setter TargetName="pill" Property="BorderBrush" Value="#E57373"/>
+                                                <Setter TargetName="txt"  Property="Text" Value="LOW"/>
+                                                <Setter TargetName="txt"  Property="Foreground" Value="#FFC1C1"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding TXLowpress}" Value="ON">
+                                                <Setter TargetName="pill" Property="Background" Value="#3A1D1D"/>
+                                                <Setter TargetName="pill" Property="BorderBrush" Value="#E57373"/>
+                                                <Setter TargetName="txt"  Property="Text" Value="LOW"/>
+                                                <Setter TargetName="txt"  Property="Foreground" Value="#FFC1C1"/>
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.Width>0.13*</DataGridTemplateColumn.Width>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+
+            <!--Device Status 카드  -->
+            <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" ClipToBounds="True">
+                <!--<ContentPresenter Content="Device Status"
+                        ContentTemplate="{StaticResource CardHeaderTemplate}"/>-->
+
+                <!-- 카드가 여러 줄 생기면 스크롤, 3열 고정 -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                    HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl ItemsSource="{Binding ViewModel.DeviceStatusCardViewModel.DeviceStatusCardModels}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="3"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+
+                        <!-- 카드 간격 -->
+                        <ItemsControl.ItemContainerStyle>
+                            <Style TargetType="ContentPresenter">
+                                <Setter Property="Margin" Value="0"/>
+                            </Style>
+                        </ItemsControl.ItemContainerStyle>
+
+                        <!-- 카드 템플릿 -->
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border  Style="{StaticResource Card}"  ClipToBounds="True">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+
+                                        <!-- 제목 -->
+                                        <ContentPresenter Grid.Row="0" Content="{Binding Title, FallbackValue=ID}"  Uid="&#xE8EF;" ToolTip="" Tag="가상 장치" ContentTemplate="{StaticResource CardHeaderTemplate}" />
+
+                                        <Grid Grid.Row="1">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="*"/>
+                                                <RowDefinition Height="*"/>
+                                                <RowDefinition Height="*"/>
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- 내용 행들 -->
+                                            <StackPanel Grid.Row="0" Grid.Column="0" Style="{StaticResource InfoRow}">
+                                                <Ellipse Style="{StaticResource InfoEllipse}" Fill="#62FF94" />
+                                                <TextBlock Text="통신 상태" Style="{StaticResource Caption}"/>
+                                                <TextBlock Text="{Binding CommStatus}" Style="{StaticResource InfoValue}"/>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Row="1" Grid.Column="0" Style="{StaticResource InfoRow}">
+                                                <Ellipse Style="{StaticResource InfoEllipse}" Fill="#62FF94" />
+                                                <TextBlock Text="운전 상태" Style="{StaticResource Caption}"/>
+                                                <TextBlock Text="{Binding RunStatus}" Style="{StaticResource InfoValue}"/>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Row="2" Grid.Column="0"  Style="{StaticResource InfoRow}">
+                                                <Ellipse Style="{StaticResource InfoEllipse}" Fill="#62FF94" />
+                                                <TextBlock Text="운전 모드" Style="{StaticResource Caption}"/>
+                                                <TextBlock Text="{Binding Mode}" Style="{StaticResource InfoValue}"/>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Row="0" Grid.Column="1"  Style="{StaticResource InfoRow}">
+                                                <Ellipse Style="{StaticResource InfoEllipse}" Fill="#62FF94" />
+                                                <TextBlock Text="통신 상태" Style="{StaticResource Caption}"/>
+                                                <TextBlock Text="{Binding CommStatus}" Style="{StaticResource InfoValue}"/>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Row="1" Grid.Column="1" Style="{StaticResource InfoRow}">
+                                                <Ellipse Style="{StaticResource InfoEllipse}" Fill="#62FF94" />
+                                                <TextBlock Text="운전 상태" Style="{StaticResource Caption}"/>
+                                                <TextBlock Text="{Binding RunStatus}" Style="{StaticResource InfoValue}"/>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Row="2" Grid.Column="1" Style="{StaticResource InfoRow}">
+                                                <Ellipse Style="{StaticResource InfoEllipse}" Fill="#62FF94" />
+                                                <TextBlock Text="운전 모드" Style="{StaticResource Caption}"/>
+                                                <TextBlock Text="{Binding Mode}" Style="{StaticResource InfoValue}"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+    </DockPanel>
+</Page>

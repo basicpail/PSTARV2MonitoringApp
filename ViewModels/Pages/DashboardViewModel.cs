@@ -138,14 +138,14 @@ namespace PSTARV2MonitoringApp.ViewModels.Pages
                     Timestamp = frame.Timestamp.ToString("HH:mm:ss.fff")
                 };
 
-                // 맨 앞에 추가
-                //TestRawDataTimelineItems.Insert(0, rawData);
+                //맨 앞에 추가
+                TestRawDataTimelineItems.Insert(0, rawData);
 
-                // 최대 아이템 수 제한
-                //while (TestRawDataTimelineItems.Count > MaxRawDataItems)
-                //{
-                //    TestRawDataTimelineItems.RemoveAt(TestRawDataTimelineItems.Count - 1);
-                //}
+                //최대 아이템 수 제한
+                while (TestRawDataTimelineItems.Count > MaxRawDataItems)
+                {
+                    TestRawDataTimelineItems.RemoveAt(TestRawDataTimelineItems.Count - 1);
+                }
             });
         }
 
