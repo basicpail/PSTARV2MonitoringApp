@@ -108,22 +108,22 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
         /// <summary>
         /// 장치 상태를 직접 업데이트합니다.
         /// </summary>
-        public void UpdateDeviceState(bool isSourceOn = false, bool isAbnormal = false,
-            bool isRunning = false, bool isStopped = false, bool isHeating = false,
-            bool isCommFailure = false, bool isLowPressure = false, bool isStandby = false)
-        {
-            if (DeviceModel == null) return;
+        //public void UpdateDeviceState(bool isSourceOn = false, bool isAbnormal = false,
+        //    bool isRunning = false, bool isStopped = false, bool isHeating = false,
+        //    bool isCommFailure = false, bool isLowPressure = false, bool isStandby = false)
+        //{
+        //    if (DeviceModel == null) return;
 
-            // 속성 업데이트
-            DeviceModel.IsSourceOn = isSourceOn;
-            DeviceModel.IsAbnormal = isAbnormal;
-            DeviceModel.IsRunning = isRunning;
-            DeviceModel.IsStopped = isStopped;
-            DeviceModel.IsHeating = isHeating;
-            DeviceModel.IsCommFailure = isCommFailure;
-            DeviceModel.IsLowPressure = isLowPressure;
-            DeviceModel.IsStandby = isStandby;
-        }
+        //    // 속성 업데이트
+        //    DeviceModel.IsSourceOn = isSourceOn;
+        //    DeviceModel.IsAbnormal = isAbnormal;
+        //    DeviceModel.IsRunning = isRunning;
+        //    DeviceModel.IsStopped = isStopped;
+        //    DeviceModel.IsHeating = isHeating;
+        //    DeviceModel.IsCommFailure = isCommFailure;
+        //    DeviceModel.IsLowPressure = isLowPressure;
+        //    DeviceModel.IsStandby = isStandby;
+        //}
 
         /// <summary>
         /// CAN 데이터 수신 처리
@@ -233,7 +233,7 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             var dialog = new ContentDialog
             {
                 Title = $"HEAT 기능 제어 - {DeviceId}",
-                Content = DeviceModel.IsHeating ?
+                Content = DeviceModel.HEATING_LAMP ?
                     $"장치 {DeviceId}의 HEAT 기능을 비활성화하시겠습니까?" :
                     $"장치 {DeviceId}의 HEAT 기능을 활성화하시겠습니까?",
                 PrimaryButtonText = "확인",
@@ -254,7 +254,7 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
                 }
 
                 // 로그 기록
-                if (DeviceModel.IsHeating)
+                if (DeviceModel.HEATING_LAMP)
                 {
 
                     _logService.LogHeatOn(DeviceId);
@@ -279,7 +279,7 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             var dialog = new ContentDialog
             {
                 Title = $"모드 전환 - {DeviceId}",
-                Content = DeviceModel.IsManualMode ?
+                Content = DeviceModel.MODE_MANUAL_LAMP ?
                     $"장치 {DeviceId}를 자동 모드로 전환하시겠습니까?" :
                     $"장치 {DeviceId}를 StandBy 모드로 전환하시겠습니까?",
                 PrimaryButtonText = "확인",
@@ -300,7 +300,7 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
                 }
 
                 // 로그 기록
-                if (DeviceModel.IsManualMode)
+                if (DeviceModel.MODE_MANUAL_LAMP)
                 {
                     _logService.LogManualMode(DeviceId);
                 }
@@ -321,7 +321,7 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             }
 
             // 이미 실행 중인지 확인
-            if (DeviceModel.IsRunning)
+            if (DeviceModel.RUN_LAMP)
             {
                 var alreadyRunningDialog = new ContentDialog
                 {
@@ -373,7 +373,7 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             }
 
             // 이미 정지 상태인지 확인
-            if (!DeviceModel.IsRunning && DeviceModel.IsStopped)
+            if (!DeviceModel.RUN_LAMP && DeviceModel.STOP_LAMP)
             {
                 var alreadyStoppedDialog = new ContentDialog
                 {
@@ -506,7 +506,7 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
 
                             // PSTARDeviceModel에 직접 설정
                             DeviceModel.Overload = true;
-                            DeviceModel.IsAbnormal = true;
+                            DeviceModel.ABN_LAMP = true;
                             DeviceModel.Overload_I = true;
                         }
                         break;
@@ -526,6 +526,7 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
 
                             // PSTARDeviceModel에 직접 설정
                             DeviceModel.TXLowpress = true;
+                            DeviceModel.LOW_PRESS_LAMP = true;
                             //DeviceModel.IsLowPressure = true;
                             //DeviceModel.Lowpress_I = true;
                             //DeviceModel.TxLowpressInternal = true;
@@ -536,7 +537,7 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
 
                     case AbnormalType.CommFailure:
                         // 통신 오류 상태 설정
-                        DeviceModel.IsCommFailure = true;
+                        DeviceModel.COMM_FAULT_LAMP = true;
 
                         // 통신 오류 관련 플래그 설정
                         switch (DeviceId)

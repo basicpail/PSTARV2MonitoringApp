@@ -1,5 +1,6 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
 
 
     <SolidColorBrush x:Key="Bg"         Color="#0B0D11"/>
@@ -40,11 +41,13 @@
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <!-- 아이콘 캡슐 -->
                 <Border Margin="0,0,10,0">
-                    <TextBlock
-                FontFamily="Segoe MDL2 Assets"
-                FontSize="16" Foreground="White"
-                HorizontalAlignment="Center" VerticalAlignment="Center"
-                Text="{Binding RelativeSource={RelativeSource AncestorType=ContentPresenter}, Path=Uid}"/>
+                    <ui:SymbolIcon Symbol="{Binding RelativeSource={RelativeSource AncestorType=ContentPresenter}, Path=Uid}" 
+                                   FontSize="16" FontWeight="Bold" Margin="0,0,8,0" Foreground="#4F8EF7"/>
+                    <!--<TextBlock
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="16" Foreground="White"
+                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Text="{Binding RelativeSource={RelativeSource AncestorType=ContentPresenter}, Path=Uid}"/>-->
                 </Border>
 
                 <!-- 제목 + 추가 텍스트 -->
@@ -179,6 +182,7 @@
         <Setter Property="Margin" Value="8,0,0,0"/>
         <Setter Property="TextWrapping" Value="NoWrap"/>
         <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        <Setter Property="FontWeight" Value="Black"/>
     </Style>
 
     <Style x:Key="InfoBorder" TargetType="Border">

@@ -106,12 +106,12 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             var cardModel = new DeviceStatusCardModel
             {
                 DeviceId = statusCardId,
-                CommStatus = deviceModel.IsCommFailure ? "Disconnected" : "Connected",
-                RunStatus = deviceModel.IsRunning ? "Running" : "Stopped",
-                RunMode = deviceModel.IsManualMode ? "Manual" : "StandBy",
-                StandByStatus = deviceModel.IsStandby ? "StandbyStart" : "Standby", //StandbyStart가 아닌 상태를 뭐라고 해야하지
-                OverloadStatus = deviceModel.IsAbnormal ? "Abnormal" : "Normal",
-                LowPressureStatus = deviceModel.IsLowPressure ? "LowPressure" : "Normal"
+                CommStatus = deviceModel.COMM_FAULT_LAMP ? "Disconnected" : "Connected",
+                RunStatus = deviceModel.RUN_LAMP ? "Running" : "Stopped",
+                RunMode = deviceModel.MODE_MANUAL_LAMP ? "Manual" : "StandBy",
+                StandByStatus = deviceModel.STAND_BY_LAMP ? "StandbyStart" : "Standby", //StandbyStart가 아닌 상태를 뭐라고 해야하지
+                OverloadStatus = deviceModel.ABN_LAMP ? "Abnormal" : "Normal",
+                LowPressureStatus = deviceModel.LOW_PRESS_LAMP ? "LowPressure" : "Normal"
             };
 
             AddDeviceStatusCard(cardModel);

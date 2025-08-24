@@ -79,7 +79,7 @@ namespace PSTARV2MonitoringApp.Services
 
                 // 각 컴포넌트 업데이트
                 UpdateDeviceStatusCard(deviceData);
-                UpdateDevicePanel(deviceData);
+                //UpdateDevicePanel(deviceData);
                 UpdateRawData(deviceData);
 
                 // 로그 기록
@@ -186,33 +186,33 @@ namespace PSTARV2MonitoringApp.Services
         /// <summary>
         /// PSTARDevicePanel 업데이트
         /// </summary>
-        private void UpdateDevicePanel(DeviceCANData data)
-        {
-            // TestViewModel을 통해 장치 패널 모델 찾기
-            var viewModel = _testViewModel?.GetDeviceViewModel(data.DeviceId);
+        //private void UpdateDevicePanel(DeviceCANData data)
+        //{
+        //    // TestViewModel을 통해 장치 패널 모델 찾기
+        //    var viewModel = _testViewModel?.GetDeviceViewModel(data.DeviceId);
 
-            if (viewModel != null)
-            {
-                viewModel.UpdateDeviceState(
-                    isSourceOn: data.IsSourceOn,
-                    isAbnormal: data.IsAbnormal,
-                    isRunning: data.IsRunning,
-                    isStopped: data.IsStopped,
-                    isHeating: data.IsHeating,
-                    isCommFailure: data.IsCommFailure,
-                    isLowPressure: data.IsLowPressure,
-                    isStandby: data.IsStandby
-                );
+        //    if (viewModel != null)
+        //    {
+        //        viewModel.UpdateDeviceState(
+        //            isSourceOn: data.IsSourceOn,
+        //            isAbnormal: data.IsAbnormal,
+        //            isRunning: data.IsRunning,
+        //            isStopped: data.IsStopped,
+        //            isHeating: data.IsHeating,
+        //            isCommFailure: data.IsCommFailure,
+        //            isLowPressure: data.IsLowPressure,
+        //            isStandby: data.IsStandby
+        //        );
 
-                // 추가적으로 DeviceModel의 다른 속성들도 업데이트
-                if (viewModel.DeviceModel != null)
-                {
-                    viewModel.DeviceModel.IsHeatOn = data.IsHeatOn;
-                    viewModel.DeviceModel.IsManualMode = data.IsManualMode;
-                    viewModel.DeviceModel.IsStandbyMode = data.IsStandbyMode;
-                }
-            }
-        }
+        //        // 추가적으로 DeviceModel의 다른 속성들도 업데이트
+        //        if (viewModel.DeviceModel != null)
+        //        {
+        //            viewModel.DeviceModel.IsHeatOn = data.IsHeatOn;
+        //            viewModel.DeviceModel.IsManualMode = data.IsManualMode;
+        //            viewModel.DeviceModel.IsStandbyMode = data.IsStandbyMode;
+        //        }
+        //    }
+        //}
 
         /// <summary>
         /// Raw Data 업데이트 (DashboardViewModel에 전달)

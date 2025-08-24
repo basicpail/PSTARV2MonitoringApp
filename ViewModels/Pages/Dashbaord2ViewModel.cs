@@ -117,7 +117,7 @@ namespace PSTARV2MonitoringApp.Views.Pages
             }
 
             // 타이머로 지속 갱신
-            _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
+            _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
             _timer.Tick += (s, e) =>
             {
                 // RawData 한 줄 추가
@@ -141,7 +141,7 @@ namespace PSTARV2MonitoringApp.Views.Pages
 
                     AddNewestFirst(LogItems, log, LOG_CAPACITY);
 
-                    if (LogItems.Count > 200) LogItems.RemoveAt(LogItems.Count - 1);
+                    if (LogItems.Count > LOG_CAPACITY) LogItems.RemoveAt(LogItems.Count - 1);
                 }
 
                 // Device 카드 Rx/Tx 변화, 연결 상태 랜덤 토글
@@ -160,7 +160,7 @@ namespace PSTARV2MonitoringApp.Views.Pages
                 }
 
                 // RawData 사이즈 유지 (성능/시야)
-                while (RawDataItems.Count > 400) RawDataItems.RemoveAt(0);
+                while (RawDataItems.Count > RAW_CAPACITY) RawDataItems.RemoveAt(0);
             };
             _timer.Start();
         }

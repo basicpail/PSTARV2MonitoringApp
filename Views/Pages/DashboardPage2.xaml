@@ -12,7 +12,7 @@
       Title="DashboardPage2">
 
     <!-- =====================  Layout  ===================== -->
-    <DockPanel SizeChanged="DockPanelSizeChanged">
+    <DockPanel SizeChanged="DockPanelSizeChanged" SnapsToDevicePixels="True">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="2*"/>
@@ -31,7 +31,7 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <ContentPresenter Content="종합 상황 정보" Uid="&#xE8EF;" ContentTemplate="{StaticResource CardHeaderTemplate}"/>
+                    <ContentPresenter Content="종합 상황 정보" Uid="Info28" ContentTemplate="{StaticResource CardHeaderTemplate}"/>
 
                     <DataGrid Grid.Row="1"
                               ItemsSource="{Binding ViewModel.LogItems}"
@@ -78,7 +78,7 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <ContentPresenter Content="Raw Data" Uid="&#xE9D2;" ContentTemplate="{StaticResource CardHeaderTemplate}"/>
+                        <ContentPresenter Content="Raw Data" Uid="Info28" ContentTemplate="{StaticResource CardHeaderTemplate}"/>
                         <!-- ID 필터 / 전체토글 (기존 바인딩 그대로 사용) -->
                         <ComboBox Grid.Column="1" Width="120" Height="25" Margin="8,0,0,0"
                               ItemsSource="{Binding AvailableCanIds}"
@@ -364,7 +364,7 @@
                                         </Grid.RowDefinitions>
 
                                         <!-- 제목 -->
-                                        <ContentPresenter Grid.Row="0" Content="{Binding Title, FallbackValue=ID}"  Uid="&#xE8EF;" ToolTip="" Tag="가상 장치" ContentTemplate="{StaticResource CardHeaderTemplate}" />
+                                        <ContentPresenter Grid.Row="0" Content="{Binding Title, FallbackValue=ID}"  Uid="Info28" ToolTip="" Tag="가상 장치" ContentTemplate="{StaticResource CardHeaderTemplate}" />
 
                                         <Grid Grid.Row="1">
                                             <Grid.RowDefinitions>
@@ -398,19 +398,19 @@
 
                                             <StackPanel Grid.Row="0" Grid.Column="1"  Style="{StaticResource InfoRow}">
                                                 <Ellipse Style="{StaticResource InfoEllipse}" Fill="#62FF94" />
-                                                <TextBlock Text="통신 상태" Style="{StaticResource Caption}"/>
+                                                <TextBlock Text="STAND BY " Style="{StaticResource Caption}"/>
                                                 <TextBlock Text="{Binding CommStatus}" Style="{StaticResource InfoValue}"/>
                                             </StackPanel>
 
                                             <StackPanel Grid.Row="1" Grid.Column="1" Style="{StaticResource InfoRow}">
                                                 <Ellipse Style="{StaticResource InfoEllipse}" Fill="#62FF94" />
-                                                <TextBlock Text="운전 상태" Style="{StaticResource Caption}"/>
+                                                <TextBlock Text="OVERLOAD" Style="{StaticResource Caption}"/>
                                                 <TextBlock Text="{Binding RunStatus}" Style="{StaticResource InfoValue}"/>
                                             </StackPanel>
 
                                             <StackPanel Grid.Row="2" Grid.Column="1" Style="{StaticResource InfoRow}">
                                                 <Ellipse Style="{StaticResource InfoEllipse}" Fill="#62FF94" />
-                                                <TextBlock Text="운전 모드" Style="{StaticResource Caption}"/>
+                                                <TextBlock Text="LOW PRESS" Style="{StaticResource Caption}"/>
                                                 <TextBlock Text="{Binding Mode}" Style="{StaticResource InfoValue}"/>
                                             </StackPanel>
                                         </Grid>

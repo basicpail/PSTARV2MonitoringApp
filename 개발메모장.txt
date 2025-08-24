@@ -174,3 +174,22 @@ SendAsync에서 CAN 프레임을 Queue에 넣는데, 이것을 Receive 하는 �
 
 -----
 
+SIG는 무시
+
+EE 변수 정의
+RunEE
+HeatEE
+ComStatusEE
+
+
+
+타이머 정의
+CountHeatingOnTime_S
+
+
+
+InitializeDefaultValues 에 값 빠졌는지 확인
+
+_model.CANTransmitInterval 사용하려면 model 먼저 초기화.
+
+RX데이터 생성하는 로직 구현해야 함

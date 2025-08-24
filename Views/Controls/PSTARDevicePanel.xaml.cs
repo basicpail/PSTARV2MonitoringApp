@@ -82,48 +82,49 @@ namespace PSTARV2MonitoringApp.Views.Controls
                 // 모델 속성이 변경되면 해당 램프만 업데이트
                 switch (e.PropertyName)
                 {
-                    case nameof(PSTARDeviceModel.IsSourceOn):
-                        UpdateLamp(SourceLamp, deviceModel.IsSourceOn ? WhiteBrush : OffBrush);
+                    case nameof(PSTARDeviceModel.SourceLamp):
+                        UpdateLamp(SourceLamp, deviceModel.SourceLamp ? WhiteBrush : OffBrush);
                         break;
-                    case nameof(PSTARDeviceModel.IsAbnormal):
-                        UpdateLamp(AbnormalLamp, deviceModel.IsAbnormal ? RedBrush : OffBrush);
+                    case nameof(PSTARDeviceModel.ABN_LAMP):
+                        UpdateLamp(AbnormalLamp, deviceModel.ABN_LAMP ? RedBrush : OffBrush);
                         break;
-                    case nameof(PSTARDeviceModel.IsRunning):
-                        UpdateLamp(RunLamp, deviceModel.IsRunning ? GreenBrush : OffBrush);
+                    case nameof(PSTARDeviceModel.RUN_LAMP):
+                        UpdateLamp(RunLamp, deviceModel.RUN_LAMP ? GreenBrush : OffBrush);
                         break;
-                    case nameof(PSTARDeviceModel.IsStopped):
-                        UpdateLamp(StopLamp, deviceModel.IsStopped ? RedBrush : OffBrush);
+                    case nameof(PSTARDeviceModel.STOP_LAMP):
+                        UpdateLamp(StopLamp, deviceModel.STOP_LAMP ? RedBrush : OffBrush);
                         break;
-                    case nameof(PSTARDeviceModel.IsHeating):
-                        UpdateLamp(HeatingLamp, deviceModel.IsHeating ? OrangeBrush : OffBrush);
+                    case nameof(PSTARDeviceModel.HEATING_LAMP):
+                        UpdateLamp(HeatingLamp, deviceModel.HEATING_LAMP ? OrangeBrush : OffBrush);
                         break;
-                    case nameof(PSTARDeviceModel.IsCommFailure):
-                        UpdateLamp(CommFailureLamp, deviceModel.IsCommFailure ? RedBrush : OffBrush);
+                    case nameof(PSTARDeviceModel.COMM_FAULT_LAMP):
+                        UpdateLamp(CommFailureLamp, deviceModel.COMM_FAULT_LAMP ? RedBrush : OffBrush);
                         break;
-                    case nameof(PSTARDeviceModel.IsLowPressure):
-                        UpdateLamp(LowPressureLamp, deviceModel.IsLowPressure ? YellowBrush : OffBrush);
+                    case nameof(PSTARDeviceModel.LOW_PRESS_LAMP):
+                        UpdateLamp(LowPressureLamp, deviceModel.LOW_PRESS_LAMP ? YellowBrush : OffBrush);
                         break;
-                    case nameof(PSTARDeviceModel.IsStandby):
-                        UpdateLamp(StandbyLamp, deviceModel.IsStandby ? YellowBrush : OffBrush);
+                    case nameof(PSTARDeviceModel.STAND_BY_LAMP):
+                        UpdateLamp(StandbyLamp, deviceModel.STAND_BY_LAMP ? YellowBrush : OffBrush);
                         break;
-                    case nameof(PSTARDeviceModel.IsHeatOn):
-                        UpdateLamp(HeatOnLamp, deviceModel.IsHeatOn ? WhiteBrush : OffBrush);
+                    case nameof(PSTARDeviceModel.HEAT_ON_LAMP):
+                        UpdateLamp(HeatOnLamp, deviceModel.HEAT_ON_LAMP ? WhiteBrush : OffBrush);
                         break;
-                    case nameof(PSTARDeviceModel.IsStandbyMode):
-                        UpdateLamp(ManualModeLamp, deviceModel.IsManualMode ? OffBrush : OffBrush);
-                        UpdateLamp(StandbyModeLamp, deviceModel.IsStandbyMode ? WhiteBrush : OffBrush);
+                    case nameof(PSTARDeviceModel.MODE_STBY_LAMP):
+                        //UpdateLamp(ManualModeLamp, deviceModel.MODE_MANUAL_LAMP ? OffBrush : OffBrush);
+                        UpdateLamp(StandbyModeLamp, deviceModel.MODE_STBY_LAMP ? WhiteBrush : OffBrush);
                         break;
-                    case nameof(PSTARDeviceModel.IsManualMode):
-                        if (deviceModel.IsManualMode)
-                        {
-                            UpdateLamp(StandbyModeLamp, OffBrush);
-                            UpdateLamp(ManualModeLamp, WhiteBrush);
-                        }
-                        else
-                        {
-                            UpdateLamp(ManualModeLamp, OffBrush);
-                            UpdateLamp(StandbyModeLamp, WhiteBrush);
-                        }
+                    case nameof(PSTARDeviceModel.MODE_MANUAL_LAMP):
+                        UpdateLamp(ManualModeLamp, deviceModel.MODE_MANUAL_LAMP ? WhiteBrush : OffBrush);
+                        //if (deviceModel.IsManualMode)
+                        //{
+                        //    UpdateLamp(StandbyModeLamp, OffBrush);
+                        //    UpdateLamp(ManualModeLamp, WhiteBrush);
+                        //}
+                        //else
+                        //{
+                        //    UpdateLamp(ManualModeLamp, OffBrush);
+                        //    UpdateLamp(StandbyModeLamp, WhiteBrush);
+                        //}
                         break;
                 }
             });
@@ -149,17 +150,17 @@ namespace PSTARV2MonitoringApp.Views.Controls
             if (deviceModel == null) return;
 
             // 모든 램프 상태 업데이트
-            UpdateLamp(SourceLamp, deviceModel.IsSourceOn ? WhiteBrush : OffBrush);
-            UpdateLamp(AbnormalLamp, deviceModel.IsAbnormal ? RedBrush : OffBrush);
-            UpdateLamp(RunLamp, deviceModel.IsRunning ? GreenBrush : OffBrush);
-            UpdateLamp(StopLamp, deviceModel.IsStopped ? RedBrush : OffBrush);
-            UpdateLamp(HeatingLamp, deviceModel.IsHeating ? OrangeBrush : OffBrush);
-            UpdateLamp(CommFailureLamp, deviceModel.IsCommFailure ? RedBrush : OffBrush);
-            UpdateLamp(LowPressureLamp, deviceModel.IsLowPressure ? YellowBrush : OffBrush);
-            UpdateLamp(StandbyLamp, deviceModel.IsStandby ? YellowBrush : OffBrush);
-            UpdateLamp(HeatOnLamp, deviceModel.IsHeatOn ? WhiteBrush : OffBrush);
-            UpdateLamp(ManualModeLamp, deviceModel.IsManualMode ? WhiteBrush : OffBrush);
-            UpdateLamp(StandbyModeLamp, deviceModel.IsStandby ? WhiteBrush : OffBrush);
+            UpdateLamp(SourceLamp, deviceModel.SourceLamp ? WhiteBrush : OffBrush);
+            UpdateLamp(AbnormalLamp, deviceModel.ABN_LAMP ? RedBrush : OffBrush);
+            UpdateLamp(RunLamp, deviceModel.RUN_LAMP ? GreenBrush : OffBrush);
+            UpdateLamp(StopLamp, deviceModel.STOP_LAMP ? RedBrush : OffBrush);
+            UpdateLamp(HeatingLamp, deviceModel.HEATING_LAMP ? OrangeBrush : OffBrush);
+            UpdateLamp(CommFailureLamp, deviceModel.COMM_FAULT_LAMP ? RedBrush : OffBrush);
+            UpdateLamp(LowPressureLamp, deviceModel.LOW_PRESS_LAMP ? YellowBrush : OffBrush);
+            UpdateLamp(StandbyLamp, deviceModel.STAND_BY_LAMP ? YellowBrush : OffBrush);
+            UpdateLamp(HeatOnLamp, deviceModel.HEAT_ON_LAMP ? WhiteBrush : OffBrush);
+            UpdateLamp(ManualModeLamp, deviceModel.MODE_MANUAL_LAMP ? WhiteBrush : OffBrush);
+            UpdateLamp(StandbyModeLamp, deviceModel.MODE_STBY_LAMP ? WhiteBrush : OffBrush);
         }
 
         // LP Test 관련 간단한 이벤트 핸들러들 (button에 Command 에 바인딩이 안돼서 이렇게 구현)
