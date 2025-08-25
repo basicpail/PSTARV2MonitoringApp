@@ -52,7 +52,9 @@ namespace PSTARV2MonitoringApp.Views.Dialogs
                 if (selectedText.Contains("OVERLOAD"))
                     return AbnormalType.OVERLOAD;
                 else if (selectedText.Contains("POWER FAIL"))
-                    return AbnormalType.CommFailure;
+                    return AbnormalType.POWERFAIL;
+                else if (selectedText.Contains("BLACKOUT"))
+                    return AbnormalType.BLACKOUT;
                 else if (selectedText.Contains("LOW PRESSURE"))
                     return AbnormalType.LowPressure;
                 else if (selectedText.Contains("COMM FAILURE"))
@@ -70,6 +72,7 @@ namespace PSTARV2MonitoringApp.Views.Dialogs
     {
         OVERLOAD,      // 과부하
         POWERFAIL,     // 전원 이상
+        BLACKOUT,     // 블랙 아웃
         LowPressure,    // 저압 상태
         CommFailure,   // 통신 오류
     }

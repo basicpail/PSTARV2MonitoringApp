@@ -17,8 +17,9 @@ namespace PSTARV2MonitoringApp.Services
         private readonly uint _canId;
         private readonly uint CAN_ID;
         private readonly int _canTransmitInterval = 1000; // CAN 전송 주기 (ms)
-        private readonly int _deviceLoopInterval; // TMR0 가 100ms 주기라서, Logic 수행도 이 주기로 맞춤
+        private readonly int _deviceLoopInterval = 100; // TMR0 가 100ms 주기라서, Logic 수행도 이 주기로 맞춤
         private int _count100_mS = 0;
+        private int _buttonPressedTime_mS = 100; // 버튼 누름 지속 시간 (ms)
         private DateTime _startButtonPressedTime = DateTime.MinValue;
         private DateTime _stopButtonPressedTime = DateTime.MinValue;
         private DateTime _modeButtonPressedTime = DateTime.MinValue;
@@ -42,6 +43,9 @@ namespace PSTARV2MonitoringApp.Services
         //이 플래그만 특이하게 값이 반대라서 선언
         private bool Com_Error = false;
         private bool Com_Normal = true;
+
+        private bool _isCanConnected = false;  // CAN 연결 상태
+
         #endregion
 
         #region 이벤트
@@ -50,6 +54,8 @@ namespace PSTARV2MonitoringApp.Services
 
         // 상태 변경 이벤트
         public event EventHandler<DeviceStateChangedEventArgs> DeviceStateChanged;
+
+        private readonly CANCommunicationService _canService;
         #endregion
 
 
@@ -68,7 +74,7 @@ namespace PSTARV2MonitoringApp.Services
             public const int RUN_REQ = 4;        // 실행 요청 (tx_data[4])
             public const int RESET_BUTTON = 5;   // 리셋 버튼 상태 (tx_data[5])
             public const int STANDBY_LAMP = 6;   // Standby 램프 상태 (tx_data[6])
-            public const int TX_LOWPRESS = 7;    // 저압 상태 (tx_data[7])
+            public const int LOWPRESS = 7;    // 저압 상태 (tx_data[7])
         }
 
         public static class COMStatusIndices
@@ -89,6 +95,7 @@ namespace PSTARV2MonitoringApp.Services
         public PSTARDeviceService(string deviceId)
         {
             _deviceId = deviceId;
+            _canService = CANCommunicationService.Instance;  // CAN 통신 서비스 인스턴스 가져오기
 
             // 장치 ID에 따른 CAN ID 설정
             switch (deviceId)
@@ -108,10 +115,13 @@ namespace PSTARV2MonitoringApp.Services
             //PSTAR 타이머
             //이상상황 발생 부분에서 함수연결하고 인터벌 설정
             _deviceTimer = new Timer();
+            _deviceTimer.Interval = _deviceLoopInterval;
+            _deviceTimer.Elapsed += OnDeviceTimerElapsed;
+            _deviceTimer.AutoReset = true;
 
-
-            StartSimulation(); //카드 생성 될 때 바로 시작 되도록 수정
-            //RunStopCont();
+            // CAN 통신 이벤트 구독
+            //_canService.ConnectionStatusChanged += OnConnectionStatusChanged;
+            //_canService.CANDataReceived += OnCANDataReceived;
         }
 
         /// <summary>
@@ -128,11 +138,23 @@ namespace PSTARV2MonitoringApp.Services
             // 새 모델 설정
             _model = model;
 
+
             // 새 모델이 있으면 이벤트 구독
             if (_model != null)
             {
                 _model.StateChanged += OnModelStateChanged;
             }
+
+            // CAN 연결이 되어 있으면 자동으로 시뮬레이션 시작
+            if (_isCanConnected && !_transmitTimer.Enabled)
+            {
+                StartSimulation();
+            }
+            else
+            {
+                Console.WriteLine($"[{_deviceId}] 모델이 설정되었지만 CAN이 연결되지 않아 시뮬레이션을 자동으로 시작할 수 없습니다.");
+            }
+
         }
 
         /// <summary>
@@ -146,28 +168,142 @@ namespace PSTARV2MonitoringApp.Services
             NotifyStateChanged();
         }
 
-        /// <summary>
-        /// 시뮬레이션 시작
-        /// </summary>
-        public void StartSimulation()
-        {
-            _transmitTimer.Start();
 
-            _deviceTimer.Interval = _deviceLoopInterval;
-            _deviceTimer.Elapsed += OnDeviceTimerElapsed;
-            _deviceTimer.AutoReset = true;
-            _deviceTimer.Start();
+        /// <summary>
+        /// CAN 통신 연결 시작
+        /// </summary>
+        public async Task<bool> StartCANConnectionAsync()
+        {
+            try
+            {
+                if (!_isCanConnected)
+                {
+                    Console.WriteLine($"[{_deviceId}] CAN 연결 시작 중...");
+
+                    // 여기에 CANCommunicationService를 사용하여 CAN 연결 설정 추가
+                    var success = await _canService.StartAsync();
+
+                    if (success)
+                    {
+                        _isCanConnected = true;
+                        Console.WriteLine($"[{_deviceId}] CAN 연결 성공");
+
+                        // 연결이 성공한 후에 시뮬레이션 시작
+                        StartSimulation();
+                        return true;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[{_deviceId}] CAN 연결 실패");
+                        return false;
+                    }
+                }
+
+                return true; // 이미 연결된 상태면 성공으로 처리
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[{_deviceId}] CAN 연결 중 오류 발생: {ex.Message}");
+                return false;
+            }
         }
 
-        
+        /// <summary>
+        /// CAN 통신 연결 종료
+        /// </summary>
+        public async Task StopCANConnectionAsync()
+        {
+            try
+            {
+                if (_isCanConnected)
+                {
+                    Console.WriteLine($"[{_deviceId}] CAN 연결 종료 중...");
+
+                    // 먼저 시뮬레이션 중지
+                    StopSimulation();
+
+                    // CAN 연결 종료
+                    await _canService.StopAsync();
+
+                    _isCanConnected = false;
+                    Console.WriteLine($"[{_deviceId}] CAN 연결 종료 완료");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[{_deviceId}] CAN 연결 종료 중 오류 발생: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// CAN 연결 상태 확인
+        /// </summary>
+        public bool IsCANConnected()
+        {
+            return _isCanConnected && _canService.IsConnected;
+        }
+
+        /// <summary>
+        /// 시뮬레이션 시작 - 중복 시작 방지 및 CAN 연결 확인 추가
+        /// </summary>
+        public void StartSimulation(bool isAbnormal = false)
+        {
+            if (_model == null)
+            {
+                Console.WriteLine($"[{_deviceId}] 모델이 설정되지 않아 시뮬레이션을 시작할 수 없습니다.");
+                return;
+            }
+
+            if (!_isCanConnected)
+            {
+                Console.WriteLine($"[{_deviceId}] CAN이 연결되지 않아 시뮬레이션을 시작할 수 없습니다.");
+                return;
+            }
+
+            try
+            {
+                // 이미 실행 중인지 확인하고 중복 시작 방지
+                if (!_transmitTimer.Enabled)
+                {
+                    _transmitTimer.Start();
+                    Console.WriteLine($"[{_deviceId}] CAN 전송 타이머 시작됨");
+                }
+
+                if (!_deviceTimer.Enabled && !isAbnormal)
+                {
+                    _deviceTimer.Start();
+                    Console.WriteLine($"[{_deviceId}] 장치 로직 타이머 시작됨");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[{_deviceId}] 시뮬레이션 시작 중 오류: {ex.Message}");
+            }
+        }
 
         /// <summary>
         /// 시뮬레이션 중지
         /// </summary>
-        public void StopSimulation()
+        public void StopSimulation(bool isAbnormal = false)
         {
-            _transmitTimer.Stop();
-            _deviceTimer.Stop();
+            try
+            {
+                if (_transmitTimer?.Enabled == true)
+                {
+                    _transmitTimer.Stop();
+                    Console.WriteLine($"[{_deviceId}] CAN 전송 타이머 중지됨");
+                }
+                //이상 상황 발생시 통신 타이머 정지 시키기 위해서 isAbnormal 플래그 추가
+                if (_deviceTimer?.Enabled == true && !isAbnormal)
+                {
+                    _deviceTimer.Stop();
+                    Console.WriteLine($"[{_deviceId}] 장치 로직 타이머 중지됨");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[{_deviceId}] 시뮬레이션 중지 중 오류: {ex.Message}");
+            }
         }
 
 
@@ -262,25 +398,25 @@ namespace PSTARV2MonitoringApp.Services
         private void ResetButtonStates()
         {
             // 시작 버튼 처리
-            if (_model.START_PB_I && DateTime.Now - _startButtonPressedTime > TimeSpan.FromMilliseconds(300))
+            if (_model.START_PB_I && DateTime.Now - _startButtonPressedTime > TimeSpan.FromMilliseconds(_buttonPressedTime_mS))
             {
                 _model.START_PB_I = !_model.START_PB_I;
             }
 
             // 정지 버튼 처리
-            if (_model.STOP_PB_I && DateTime.Now - _stopButtonPressedTime > TimeSpan.FromMilliseconds(300))
+            if (_model.STOP_PB_I && DateTime.Now - _stopButtonPressedTime > TimeSpan.FromMilliseconds(_buttonPressedTime_mS))
             {
                 _model.STOP_PB_I = !_model.STOP_PB_I;
             }
 
             // 모드 버튼 처리
-            if (_model.MODE_PB_I && DateTime.Now - _modeButtonPressedTime > TimeSpan.FromMilliseconds(300))
+            if (_model.MODE_PB_I && DateTime.Now - _modeButtonPressedTime > TimeSpan.FromMilliseconds(_buttonPressedTime_mS))
             {
                 _model.MODE_PB_I = !_model.MODE_PB_I;
             }
 
             // 히트 버튼 처리
-            if (_model.HEAT_PB_I && DateTime.Now - _heatButtonPressedTime > TimeSpan.FromMilliseconds(300))
+            if (_model.HEAT_PB_I && DateTime.Now - _heatButtonPressedTime > TimeSpan.FromMilliseconds(_buttonPressedTime_mS))
             {
                 _model.HEAT_PB_I = !_model.HEAT_PB_I;
             }
@@ -294,6 +430,7 @@ namespace PSTARV2MonitoringApp.Services
             if (_model == null) return;
 
             // PSTARFW.c의 메인 루프 로직 구현
+            // RunStopProc의 LampSigCont(RUN_SIG, ON); 를 RUN_LAMP 켜는 것으로 해석했다.
             HandlePowerRecovery();
             //UpdatePressureStatus();
             //ProcessInputs();
@@ -314,7 +451,7 @@ namespace PSTARV2MonitoringApp.Services
             ConnectProc(_model.ComStatus);
 
             StandByLampProc(_model.ModeStatus);
-            StbyStartAlarm();
+            STBYStartAlarm();
         }
 
         /// <summary>
@@ -343,7 +480,7 @@ namespace PSTARV2MonitoringApp.Services
                 {
                     _model.RX_Data1 = data;
                     _model.CountComFault1_S = 0;
-                    Console.WriteLine($"ID=0x{id:X3}, 장치1 데이터: {BitConverter.ToString(data).Replace("-", " ")}");
+                    //Console.WriteLine($"ID=0x{id:X3}, 장치1 데이터: {BitConverter.ToString(data).Replace("-", " ")}");
                 }
             }
             else if (id == 0x200) // 2번 장치에서 온 메시지
@@ -352,7 +489,7 @@ namespace PSTARV2MonitoringApp.Services
                 {
                     _model.RX_Data2 = data;
                     _model.CountComFault2_S = 0;
-                    Console.WriteLine($"ID=0x{id:X3}, 장치2 데이터: {BitConverter.ToString(data).Replace("-", " ")}");
+                    //Console.WriteLine($"ID=0x{id:X3}, 장치2 데이터: {BitConverter.ToString(data).Replace("-", " ")}");
                 }
             }
             else if (id == 0x300) // 3번 장치에서 온 메시지
@@ -361,7 +498,7 @@ namespace PSTARV2MonitoringApp.Services
                 {
                     _model.RX_Data3 = data;
                     _model.CountComFault3_S = 0;
-                    Console.WriteLine($"ID=0x{id:X3}, 장치3 데이터: {BitConverter.ToString(data).Replace("-", " ")}");
+                    //Console.WriteLine($"ID=0x{id:X3}, 장치3 데이터: {BitConverter.ToString(data).Replace("-", " ")}");
                 }
             }
             //Console.WriteLine($"수신 데이터: ID=0x{canFrame.Id:X3}, Data={BitConverter.ToString(canFrame.Data).Replace("-", " ")}");
@@ -375,8 +512,6 @@ namespace PSTARV2MonitoringApp.Services
         /// </summary>
         private void TransmitCANData()
         {
-            //Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} [{_deviceId}] TransmitCANData 호출됨");
-
             if (_model == null) return;
 
             // 모델에서 데이터 읽어서 CAN 프레임 구성
@@ -384,11 +519,11 @@ namespace PSTARV2MonitoringApp.Services
             data[CANDataIndices.STBY_START] = (byte)(_model.STBY_Start ? 1 : 0);
             data[CANDataIndices.RUN_LAMP] = (byte)(_model.RUN_LAMP ? 1 : 0);
             data[CANDataIndices.OVERLOAD] = (byte)(_model.Overload ? 1 : 0);
-            data[CANDataIndices.MODE_STATUS] = (byte)(_model.ModeStatus ? 1 : 0);  // 0: MANUAL, 1: STBY
+            data[CANDataIndices.MODE_STATUS] = (byte)(_model.ModeStatus ? 1 : 0);  //0: MANUAL, 1: STBY
             data[CANDataIndices.RUN_REQ] = (byte)(_model.RUN_req ? 1 : 0);
             data[CANDataIndices.RESET_BUTTON] = (byte)(_model.ResetButton ? 1 : 0);
             data[CANDataIndices.STANDBY_LAMP] = (byte)(_model.STAND_BY_LAMP ? 1 : 0);
-            data[CANDataIndices.TX_LOWPRESS] = (byte)(_model.TXLowpress ? 1 : 0);
+            data[CANDataIndices.LOWPRESS] = (byte)(_model.TXLowpress ? 1 : 0); //Lowpress 아니다
 
             // CAN 프레임 생성
             var frame = new CANFrame
@@ -530,6 +665,7 @@ namespace PSTARV2MonitoringApp.Services
 
             if (command) // RUN
             {
+                _model.RUN_LAMP = true;
             }
             else // STOP
             {
@@ -549,6 +685,7 @@ namespace PSTARV2MonitoringApp.Services
             {
                 if(_model.FirstRunStatus == false) _model.FirstRunStatus = true; //한 번이라도 RUN을 경험한 이후에만 STOP 펄스를 보내기 위함. 전원 투입 직후 이미 STOP 상태일 때 불필요한 STOP 펄스가 외부(인버터/PLC)에 나가 오동작/불필요 로그를 만드는 걸 막는 목적
 
+                _model.RUN_LAMP = true; // LampSigCont(RUN_SIG, ON);
                 _model.ResetButton = false;
                 _model.STOP_LAMP = false;
             }
@@ -823,7 +960,7 @@ namespace PSTARV2MonitoringApp.Services
                 _model.TXLowpress = true; // 저압 신호
             }
             else if (_model.ComStatus == COMStatusIndices.StandBy_2 &&
-                (_model.RX_Data1[CANDataIndices.TX_LOWPRESS] == 1 || _model.RX_Data2[CANDataIndices.TX_LOWPRESS] == 1 || _model.RX_Data3[CANDataIndices.TX_LOWPRESS] == 1))
+                (_model.RX_Data1[CANDataIndices.LOWPRESS] == 1 || _model.RX_Data2[CANDataIndices.LOWPRESS] == 1 || _model.RX_Data3[CANDataIndices.LOWPRESS] == 1))
                 // 2대가 StandBy일 때 다른 장치에서 저압 신호 수신 시
             {
                 _model.LOW_PRESS_LAMP = true;
@@ -832,7 +969,7 @@ namespace PSTARV2MonitoringApp.Services
             }
             else if (Lowpress_I == false || 
                 (_model.ComStatus == COMStatusIndices.StandBy_2 && 
-                (_model.RX_Data1[CANDataIndices.TX_LOWPRESS] == 0 || _model.RX_Data2[CANDataIndices.TX_LOWPRESS] == 0 || _model.RX_Data3[CANDataIndices.TX_LOWPRESS] == 0 )))
+                (_model.RX_Data1[CANDataIndices.LOWPRESS] == 0 || _model.RX_Data2[CANDataIndices.LOWPRESS] == 0 || _model.RX_Data3[CANDataIndices.LOWPRESS] == 0 )))
                 // 저압 신호가 없고 2대가 StandBy일 때 다른 장치에서 저압 신호가 없을 때
             {
                 _model.LOW_PRESS_LAMP = false;
@@ -1617,10 +1754,18 @@ namespace PSTARV2MonitoringApp.Services
         /// <summary>
         /// StandBy 시작 알람 처리
         /// </summary>
-        private void StbyStartAlarm()
+        private void STBYStartAlarm()
         {
             if (_model == null) return;
-            // 가상 장치에서는 구현하지 않음
+
+            if (_model.RUN_LAMP == true && _model.STAND_BY_LAMP == true)
+            {
+                _model.STBY_Start = true;
+            }
+            else
+            {
+                _model.STBY_Start = false;
+            }
         }
 
         /// <summary>
@@ -1965,32 +2110,6 @@ namespace PSTARV2MonitoringApp.Services
 
         #region 외부 인터페이스 메서드
         /// <summary>
-        /// 과부하 상태 설정
-        /// </summary>
-        public void SetOverload(bool isOverload)
-        {
-            if (_model == null) return;
-
-            _model.Overload_I = isOverload;
-
-            // 상태 변경 시 로직 실행
-            ExecutePSTARLogic();
-        }
-
-        /// <summary>
-        /// 저압 상태 설정
-        /// </summary>
-        public void SetLowPressure(bool isLowPressure)
-        {
-            if (_model == null) return;
-
-            _model.Lowpress_I = isLowPressure;
-
-            // 상태 변경 시 로직 실행
-            ExecutePSTARLogic();
-        }
-
-        /// <summary>
         /// 상태 변경 알림
         /// desperate
         /// </summary>
@@ -2014,13 +2133,34 @@ namespace PSTARV2MonitoringApp.Services
         /// </summary>
         public void Dispose()
         {
-            _transmitTimer?.Stop();
-            _transmitTimer?.Dispose();
+            // CAN 통신 이벤트 구독 해제
+            //if (_canService != null)
+            //{
+            //    _canService.ConnectionStatusChanged -= OnConnectionStatusChanged;
+            //    _canService.CANDataReceived -= OnCANDataReceived;
+            //}
+
+            // 시뮬레이션 중지
+            StopSimulation();
+
+            // 타이머 정리
+            if (_transmitTimer != null)
+            {
+                _transmitTimer.Elapsed -= OnTransmitTimerElapsed;
+                _transmitTimer.Dispose();
+            }
+
+            if (_deviceTimer != null)
+            {
+                _deviceTimer.Elapsed -= OnDeviceTimerElapsed;
+                _deviceTimer.Dispose();
+            }
 
             // 모델 이벤트 구독 해제
             if (_model != null)
             {
                 _model.StateChanged -= OnModelStateChanged;
+                _model = null; // 참조 해제
             }
         }
         #endregion

@@ -338,14 +338,14 @@
         <Grid Grid.Row="1">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,10">
                 <!-- CAN 시뮬레이션 제어 버튼들 -->
-                <!--<ui:Button 
+                <ui:Button 
                     Content="CAN 데이터 송수신 시작"
                     Command="{Binding ViewModel.StartCANSimulationCommand}"
                     Background="#29A745"
                     Foreground="#F3F3F3"
                     BorderBrush="#0D7F33"
                     Margin="0,0,10,0"
-                    ToolTip="가상 CAN 데이터 송수신 시작"/>-->
+                    ToolTip="가상 CAN 데이터 송수신 시작"/>
                 
                 <ui:Button 
                     Content="CAN 데이터 송수신 중지"
