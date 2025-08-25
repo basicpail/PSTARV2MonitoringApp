@@ -1,208 +1,331 @@
-﻿<Page
-    x:Class="PSTARV2MonitoringApp.Views.Pages.DashboardPage"
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:local="clr-namespace:PSTARV2MonitoringApp.Views.Pages"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-    xmlns:Controls="clr-namespace:PSTARV2MonitoringApp.Views.Controls"
-    Title="DashboardPage"
-    d:DataContext="{d:DesignInstance local:DashboardPage,
-                                     IsDesignTimeCreatable=False}"
-    d:DesignHeight="720"
-    d:DesignWidth="1280"
-    ui:Design.Background="{ui:ThemeResource ApplicationBackgroundBrush}"
-    ui:Design.Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
-    Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
-    ScrollViewer.CanContentScroll="True"
-    mc:Ignorable="d">
+﻿<Page x:Class="PSTARV2MonitoringApp.Views.Pages.DashboardPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:PSTARV2MonitoringApp.Views.Pages"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      mc:Ignorable="d" 
+      d:DesignHeight="1080" d:DesignWidth="1920"
+      d:DataContext="{d:DesignInstance local:DashboardPage,
+                                 IsDesignTimeCreatable=False}"
+      Title="DashboardPage">
 
-    <!-- 한 번만 선언하는 Resources -->
-    <Page.Resources>
-        <!-- DataGrid 공통 헤더 스타일 -->
-        <Style x:Key="GridHeaderStyle" TargetType="DataGridColumnHeader">
-            <Setter Property="Background" Value="#434343"/>
-            <Setter Property="Foreground" Value="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="HorizontalContentAlignment" Value="Center"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource DividerColorBrush}"/>
-            <Setter Property="Padding" Value="8,6"/>
-        </Style>
-
-        <!-- DataGrid RowStyle 정의 -->
-        <Style x:Key="NoCornerRadiusRowStyle" TargetType="DataGridRow">
-            <Setter Property="SnapsToDevicePixels" Value="True"/>
-            <Setter Property="OverridesDefaultStyle" Value="True"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource GridLineBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Background" Value="{DynamicResource RowBackgroundBrush}"/>
-            <Setter Property="FontSize" Value="20"/>
-            <Setter Property="Margin" Value="1" />
-            <!-- Template에서 CornerRadius만 0으로 -->
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="DataGridRow">
-                        <Border x:Name="RowBorder"
-                              Background="{TemplateBinding Background}" 
-                              BorderBrush="{TemplateBinding BorderBrush}"
-                              BorderThickness="{TemplateBinding BorderThickness}"
-                              CornerRadius="3">
-                            <DataGridCellsPresenter/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        
-        <!-- DataGrid 공통 셀 스타일 -->
-        <Style x:Key="GridCellStyle" TargetType="DataGridCell">
-            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Margin" Value="2,0,0,0" />
-        </Style>
-    </Page.Resources>
-    
-    
-    <Grid Margin="16">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="2*" />
-            <RowDefinition Height="auto"/>
-            <RowDefinition Height="1*"/>
-        </Grid.RowDefinitions>
-
-        <!-- 상단: 두 개의 카드 -->
-        <Grid Grid.Row="0" Margin="0,0,0,16">
+    <!-- =====================  Layout  ===================== -->
+    <DockPanel SizeChanged="DockPanelSizeChanged" SnapsToDevicePixels="True">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="2*"/>
+                <RowDefinition Height="1.2*"/>
+            </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="1.4*"/>
+                <ColumnDefinition Width="2*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- ▶ 종합 상황 정보 카드 (DeviceLogService 사용) -->
-            <ui:Card
-                Grid.Column="0"
-                Background="#323232"
-                BorderBrush="#434343"
-                BorderThickness="1"
-                Margin="0,0,8,0">
-
+            <!-- 종합 상황 정보 (교체본) -->
+            <Border x:Name="SituationInfoDataGrid" Grid.Row="0" Grid.Column="0" Style="{StaticResource Card}" MinHeight="300"  VerticalAlignment="Stretch">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="400"/>
+                        <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <!-- ① Header 영역 -->
-                    <Grid Grid.Row="0" Margin="16,0,16,8">
+                    <ContentPresenter Content="종합 상황 정보" Uid="Info28" ContentTemplate="{StaticResource CardHeaderTemplate}"/>
+
+                    <DataGrid Grid.Row="1"
+                              ItemsSource="{Binding ViewModel.DeviceLogs}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              CanUserAddRows="False" CanUserDeleteRows="False"
+                              HeadersVisibility="Column"
+                              GridLinesVisibility="None"
+                              ColumnHeaderStyle="{StaticResource StrongHeader}"
+                              RowStyle="{StaticResource ElevatedRow}"
+                              AlternationCount="2"
+                              AlternatingRowBackground="{StaticResource AlternatingRowBackground}"
+                              RowHeight="30"
+                              ColumnHeaderHeight="32"
+                              VirtualizingPanel.IsVirtualizing="True"
+                              VirtualizingPanel.VirtualizationMode="Recycling"
+                              VirtualizingPanel.ScrollUnit="Pixel"
+                              EnableRowVirtualization="True"
+                              EnableColumnVirtualization="True"
+                              ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                              ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="시간"   Binding="{Binding Date, StringFormat=HH:mm:ss}" Width="0.20*"/>
+                            <DataGridTextColumn Header="장치 ID" Binding="{Binding Id}"  Width="0.16*"/>
+                            <DataGridTextColumn Header="상황 정보" Binding="{Binding Contents}"   Width="*"/>
+                        </DataGrid.Columns>
+                        <!-- 데이터가 없을 때 표시할 메시지 -->
+                        <!--<DataGrid.Style>
+                            <Style TargetType="DataGrid">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ViewModel.RawDataItems.Count}" Value="0">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="DataGrid">
+                                                    <Border 
+                                                        BorderBrush="{StaticResource CardStroke}" 
+                                                        BorderThickness="2" 
+                                                        Background="{StaticResource Bg}">
+                                                        <Grid>
+                                                            <ScrollViewer x:Name="BlankDataGrid" Focusable="false">
+                                                                <ItemsPresenter x:Name="ItemsPresenter" SnapsToDevicePixels="True"/>
+                                                            </ScrollViewer>
+                                                            <TextBlock Text="수신한 CAN 데이터가 없습니다." 
+                                                                Foreground="#F3F3F3" 
+                                                                HorizontalAlignment="Center" 
+                                                                VerticalAlignment="Center" 
+                                                                FontSize="16"
+                                                                Opacity="0.7"/>
+                                                        </Grid>
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.Style>-->
+                    </DataGrid>
+                </Grid>
+            </Border>
+
+
+            <!-- Raw Data 카드 -->
+            <Border x:Name="RawDataDataGrid" Grid.Row="0" Grid.Column="1" Style="{StaticResource Card}" MinHeight="300" VerticalAlignment="Stretch">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- 헤더 -->
+                    <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <ui:SymbolIcon Symbol="Info28" FontSize="20" FontWeight="Bold" Margin="0,0,8,0" Foreground="#4F8EF7"/>
-                            <TextBlock Text="종합 상황 정보"
-                                FontSize="20"
-                                FontWeight="SemiBold"
-                                Foreground="#F3F3F3"
-                                VerticalAlignment="Center"/>
-                        </StackPanel>
-
-                        <!-- 테스트 로그 추가 버튼 -->
-                        <ui:Button Grid.Column="1"
-                            Content="Test Log"
-                            Margin="0,0,8,0"
-                            Padding="8,4"
-                            CornerRadius="5"
-                            Icon="{ui:SymbolIcon Play28}"
-                            Command="{Binding ViewModel.AddRandomLogCommand}"
-                            Background="#212121"
-                            Foreground="#F3F3F3"
-                            BorderBrush="#33334D"
-                            ToolTip="테스트용 랜덤 로그 추가"/>
-
-                        <!-- 로그 클리어 버튼 -->
-                        <ui:Button Grid.Column="2"
-                            Content="Clear"
-                            Margin="0,0,8,0"
-                            Padding="8,4"
-                            CornerRadius="5"
-                            Icon="{ui:SymbolIcon Delete28}"
-                            Command="{Binding ViewModel.ClearLogsCommand}"
-                            Background="#212121"
-                            Foreground="#F3F3F3"
-                            BorderBrush="#33334D"
-                            ToolTip="모든 로그 삭제"/>
-
-                        <!-- 필터 버튼 -->
-                        <ui:Button Grid.Column="3"
-                            Content="필터"
-                            Padding="8,4"
-                            CornerRadius="5"
-                            Icon="{ui:SymbolIcon Filter28}"
-                            Command="{Binding ViewModel.ShowLogFilterDialogCommand}"
-                            Background="#212121"
-                            Foreground="#F3F3F3"
-                            BorderBrush="#33334D"
-                            ToolTip="ID별 로그 필터링"/>
+                        <ContentPresenter Content="Raw Data" Uid="Info28" ContentTemplate="{StaticResource CardHeaderTemplate}"/>
+                        <!-- ID 필터 / 전체토글 (기존 바인딩 그대로 사용) -->
+                        <ComboBox Grid.Column="1" Width="120" Height="25" Margin="8,0,0,0"
+                              ItemsSource="{Binding AvailableCanIds}"
+                              SelectedItem="{Binding SelectedCanIdFilter}"/>
+                        <CheckBox Grid.Column="2" Margin="8,0,0,0"
+                              VerticalAlignment="Center"
+                              Foreground="{StaticResource TextSub}"
+                              Content="모든 데이터"
+                              IsChecked="{Binding ShowAllCanMessages}"/>
                     </Grid>
 
-                    <!-- ② Content 영역: DeviceLogService 통합 로그 DataGrid (필터링된 버전) -->
-                    <DataGrid
-                        Grid.Row="1"
-                        ItemsSource="{Binding ViewModel.FilteredDeviceLogs}"
-                        ColumnHeaderStyle="{StaticResource GridHeaderStyle}"
-                        CellStyle="{StaticResource GridCellStyle}"
-                        RowStyle="{StaticResource NoCornerRadiusRowStyle}"
-                        AutoGenerateColumns="False"
-                        CanUserAddRows="False"
-                        HeadersVisibility="Column"
-                        GridLinesVisibility="All"
-                        RowBackground="#101010"
-                        AlternatingRowBackground="#212121"
-                        IsReadOnly="True"
-                        BorderBrush="#000000"
-                        Foreground="#000000"
-                        Background="#000000">
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding ViewModel.RawDataItems}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              CanUserAddRows="False" CanUserDeleteRows="False"
+                              HeadersVisibility="Column"
+                              GridLinesVisibility="None"
+                              ColumnHeaderStyle="{StaticResource StrongHeader}"
+                              RowStyle="{StaticResource ElevatedRow}"
+                              AlternationCount="2"
+                              AlternatingRowBackground="{StaticResource AlternatingRowBackground}"
+                              RowHeight="30"
+                              ColumnHeaderHeight="32"
+                              FrozenColumnCount="2"
+                              VirtualizingPanel.IsVirtualizing="True" 
+                              VirtualizingPanel.VirtualizationMode="Recycling"
+                              VirtualizingPanel.ScrollUnit="Pixel"
+                              EnableRowVirtualization="True"
+                              EnableColumnVirtualization="True"
+                              ScrollViewer.CanContentScroll="True"
+                              ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                              ScrollViewer.VerticalScrollBarVisibility="Auto">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="시간"     
-                                                Binding="{Binding Date, StringFormat=HH:mm:ss}" 
-                                                Width="6*" 
-                                                MinWidth="150"/>
-                            <DataGridTextColumn Header="장치 ID"       
-                                                Binding="{Binding Id}" 
-                                                Width="2*" 
-                                                MinWidth="50"/>
-                            <DataGridTextColumn Header="상황 정보" 
-                                                Binding="{Binding Contents}" 
-                                                Width="10*"/>
+                            <!-- 좌측 고정 2열 -->
+                            <DataGridTextColumn Header="시간" Binding="{Binding Timestamp}" Width="0.16*"/>
+                            <DataGridTextColumn Header="CAN ID" Binding="{Binding CanId}" Width="0.10*"/>
+
+                            <!-- 배지 컬럼 패턴: 기본 OFF, True/ON/1 일 때 ON 색상 -->
+                            <!-- STBY -->
+                            <DataGridTemplateColumn Header="STBY Start">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border x:Name="pill" Style="{StaticResource PillBase}">
+                                            <TextBlock x:Name="txt" Text="OFF" HorizontalAlignment="Center" Foreground="{StaticResource TextSub}"/>
+                                        </Border>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding STBY_Start}" Value="1">
+                                                <Setter TargetName="pill" Property="Background" Value="#14362A"/>
+                                                <Setter TargetName="pill" Property="BorderBrush" Value="#2AAE84"/>
+                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
+                                                <Setter TargetName="txt"  Property="Foreground" Value="#8FF2C7"/>
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.Width>0.12*</DataGridTemplateColumn.Width>
+                            </DataGridTemplateColumn>
+
+                            <!-- Run Lamp -->
+                            <DataGridTemplateColumn Header="Run Lamp">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border x:Name="pill" Style="{StaticResource PillBase}">
+                                            <TextBlock x:Name="txt" Text="OFF" HorizontalAlignment="Center" Foreground="{StaticResource TextSub}"/>
+                                        </Border>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding RunLamp}" Value="1">
+                                                <Setter TargetName="pill" Property="Background" Value="#132E49"/>
+                                                <Setter TargetName="pill" Property="BorderBrush" Value="#58A9F8"/>
+                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
+                                                <Setter TargetName="txt"  Property="Foreground" Value="#BFE0FF"/>
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.Width>0.13*</DataGridTemplateColumn.Width>
+                            </DataGridTemplateColumn>
+
+                            <!-- Overload -->
+                            <DataGridTemplateColumn Header="Overload">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border x:Name="pill" Style="{StaticResource PillBase}">
+                                            <TextBlock x:Name="txt" Text="OFF" HorizontalAlignment="Center" Foreground="{StaticResource TextSub}"/>
+                                        </Border>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding Overload}" Value="1">
+                                                <Setter TargetName="pill" Property="Background" Value="#3A1D1D"/>
+                                                <Setter TargetName="pill" Property="BorderBrush" Value="#E57373"/>
+                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
+                                                <Setter TargetName="txt"  Property="Foreground" Value="#FFC1C1"/>
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.Width>0.13*</DataGridTemplateColumn.Width>
+                            </DataGridTemplateColumn>
+
+                            <!-- Mode / Run Req / Reset Btn / StandBy / TXLow → 텍스트 or 배지 -->
+                            <DataGridTemplateColumn Header="Mode">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border x:Name="pill" Style="{StaticResource PillBase}">
+                                            <TextBlock x:Name="txt" Text="MAN" HorizontalAlignment="Center" Foreground="{StaticResource TextSub}"/>
+                                        </Border>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding ModeStatus}" Value="1">
+                                                <Setter TargetName="txt"  Property="Text" Value="STBY"/>
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.Width>0.12*</DataGridTemplateColumn.Width>
+                            </DataGridTemplateColumn>
+
+
+                            <DataGridTemplateColumn Header="Run Req">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border x:Name="pill" Style="{StaticResource PillBase}">
+                                            <TextBlock x:Name="txt" Text="OFF" HorizontalAlignment="Center" Foreground="{StaticResource TextSub}"/>
+                                        </Border>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding RUN_req}" Value="1">
+                                                <Setter TargetName="pill" Property="Background" Value="#1E2E1C"/>
+                                                <Setter TargetName="pill" Property="BorderBrush" Value="#85C47C"/>
+                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
+                                                <Setter TargetName="txt"  Property="Foreground" Value="#CFEFD0"/>
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.Width>0.13*</DataGridTemplateColumn.Width>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Header="Reset Btn">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border x:Name="pill" Style="{StaticResource PillBase}">
+                                            <TextBlock x:Name="txt" Text="OFF" HorizontalAlignment="Center" Foreground="{StaticResource TextSub}"/>
+                                        </Border>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding ResetButton}" Value="1">
+                                                <Setter TargetName="pill" Property="Background" Value="#2D2A12"/>
+                                                <Setter TargetName="pill" Property="BorderBrush" Value="#CFB253"/>
+                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
+                                                <Setter TargetName="txt"  Property="Foreground" Value="#FAE8A6"/>
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.Width>0.13*</DataGridTemplateColumn.Width>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Header="StandBy">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border x:Name="pill" Style="{StaticResource PillBase}">
+                                            <TextBlock x:Name="txt" Text="OFF" HorizontalAlignment="Center" Foreground="{StaticResource TextSub}"/>
+                                        </Border>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding StandByLamp}" Value="1">
+                                                <Setter TargetName="pill" Property="Background" Value="#26283B"/>
+                                                <Setter TargetName="pill" Property="BorderBrush" Value="#9C95FF"/>
+                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
+                                                <Setter TargetName="txt"  Property="Foreground" Value="#D8D5FF"/>
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.Width>0.13*</DataGridTemplateColumn.Width>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Header="LowPress">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border x:Name="pill" Style="{StaticResource PillBase}">
+                                            <TextBlock x:Name="txt" Text="OFF" HorizontalAlignment="Center" Foreground="{StaticResource TextSub}"/>
+                                        </Border>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding TXLowpress}" Value="1">
+                                                <Setter TargetName="pill" Property="Background" Value="#3A1D1D"/>
+                                                <Setter TargetName="pill" Property="BorderBrush" Value="#E57373"/>
+                                                <Setter TargetName="txt"  Property="Text" Value="LOW"/>
+                                                <Setter TargetName="txt"  Property="Foreground" Value="#FFC1C1"/>
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.Width>0.13*</DataGridTemplateColumn.Width>
+                            </DataGridTemplateColumn>
                         </DataGrid.Columns>
 
                         <!-- 데이터가 없을 때 표시할 메시지 -->
-                        <DataGrid.Style>
+                        <!--<DataGrid.Style>
                             <Style TargetType="DataGrid">
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding ViewModel.FilteredDeviceLogs.Count}" Value="0">
+                                    <DataTrigger Binding="{Binding ViewModel.RawDataItems.Count}" Value="0">
                                         <Setter Property="Template">
                                             <Setter.Value>
                                                 <ControlTemplate TargetType="DataGrid">
-                                                    <Border BorderBrush="{TemplateBinding BorderBrush}" 
-                                                            BorderThickness="{TemplateBinding BorderThickness}" 
-                                                            Background="{TemplateBinding Background}">
+                                                    <Border 
+                                                        BorderBrush="{StaticResource CardStroke}" 
+                                                        BorderThickness="2" 
+                                                        Background="{StaticResource Bg}">
                                                         <Grid>
-                                                            <ScrollViewer x:Name="DG_ScrollViewer" Focusable="false">
+                                                            <ScrollViewer x:Name="BlankDataGrid" Focusable="false">
                                                                 <ItemsPresenter x:Name="ItemsPresenter" 
-                                                                              SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                                                SnapsToDevicePixels="True"/>
                                                             </ScrollViewer>
-                                                            <TextBlock Text="해당 조건의 상황 정보가 없습니다." 
-                                                                       Foreground="#F3F3F3" 
-                                                                       HorizontalAlignment="Center" 
-                                                                       VerticalAlignment="Center" 
-                                                                       FontSize="16"
-                                                                       Opacity="0.7"/>
+                                                            <TextBlock Text="수신한 CAN 데이터가 없습니다." 
+                                                                Foreground="#F3F3F3" 
+                                                                HorizontalAlignment="Center" 
+                                                                VerticalAlignment="Center" 
+                                                                FontSize="16"
+                                                                Opacity="0.7"/>
                                                         </Grid>
                                                     </Border>
                                                 </ControlTemplate>
@@ -211,171 +334,108 @@
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
-                        </DataGrid.Style>
+                        </DataGrid.Style>-->
+
                     </DataGrid>
                 </Grid>
-            </ui:Card>
+            </Border>
 
-            <!-- ▶ Raw Data 카드 -->
-            <ui:Card
-                Grid.Column="1"
-                Background="#323232"
-                BorderBrush="#434343"
-                BorderThickness="1"
-                Margin="8,0,0,0">
+            <!--Device Status 카드  -->
+            <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" ClipToBounds="True">
+                <!--<ContentPresenter Content="Device Status"
+                        ContentTemplate="{StaticResource CardHeaderTemplate}"/>-->
 
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="400"/>
-                    </Grid.RowDefinitions>
+                <!-- 카드가 여러 줄 생기면 스크롤, 3열 고정 -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                    HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl ItemsSource="{Binding ViewModel.DeviceStatusCardModels}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="3"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
 
-                    <!-- ① Header -->
-                    <Grid Grid.Row="0" Margin="16,0,16,8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <ui:SymbolIcon Symbol="Info28" FontSize="20" FontWeight="Bold" Margin="0,0,8,0" Foreground="#4F8EF7"/>
-                            <TextBlock Text="Raw Data"
-                                FontSize="20"
-                                FontWeight="SemiBold"
-                                Foreground="#F3F3F3"
-                                VerticalAlignment="Center"/>
-                        </StackPanel>
-
-                        <!-- CAN ID 필터 버튼 -->
-                        <ComboBox Grid.Column="1" 
-                            Margin="8,0,4,0"
-                            Width="100"
-                            ItemsSource="{Binding ViewModel.AvailableCanIds}"
-                            SelectedItem="{Binding ViewModel.SelectedCanIdFilter, Mode=TwoWay}"
-                            Background="#212121"
-                            Foreground="#F3F3F3"
-                            BorderBrush="#33334D"
-                            ToolTip="CAN ID 필터"/>
-                        
-                        <!-- 필터 토글 -->
-                        <ui:ToggleSwitch Grid.Column="2"
-                            Content="모든 데이터"
-                            Margin="4,0,0,0"
-                            IsChecked="{Binding ViewModel.ShowAllCanMessages, Mode=TwoWay}"
-                            Background="#212121"
-                            Foreground="#F3F3F3"
-                            BorderBrush="#33334D"
-                            ToolTip="모든 CAN 메시지 표시"/>
-                    </Grid>
-
-                    <!-- ② Content: Raw Data DataGrid -->
-                    <DataGrid
-                        Grid.Row="1"
-                        ItemsSource="{Binding ViewModel.TestRawDataTimelineItems}"
-                        ColumnHeaderStyle="{StaticResource GridHeaderStyle}"
-                        CellStyle="{StaticResource GridCellStyle}"
-                        RowStyle="{StaticResource NoCornerRadiusRowStyle}"
-                        AutoGenerateColumns="False"
-                        CanUserAddRows="False"
-                        HeadersVisibility="Column"
-                        GridLinesVisibility="All"
-                        RowBackground="#101010"
-                        AlternatingRowBackground="#212121"
-                        IsReadOnly="True"
-                        BorderBrush="#000000"
-                        Foreground="#000000"
-                        Background="#000000">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="시간" Binding="{Binding Timestamp}" Width="2*" MinWidth="100"/>
-                            <DataGridTextColumn Header="CAN ID" Binding="{Binding CanId}" Width="1*" MinWidth="60"/>
-                            <DataGridTextColumn Header="STBY Start" Binding="{Binding STBY_Start}" Width="*" MinWidth="80"/>
-                            <DataGridTextColumn Header="Run Lamp" Binding="{Binding RunLamp}" Width="*" MinWidth="80"/>
-                            <DataGridTextColumn Header="Overload" Binding="{Binding Overload}" Width="*" MinWidth="80"/>
-                            <DataGridTextColumn Header="Mode" Binding="{Binding ModeStatus}" Width="*" MinWidth="80"/>
-                            <DataGridTextColumn Header="Run Req" Binding="{Binding RUN_req}" Width="*" MinWidth="80"/>
-                            <DataGridTextColumn Header="Reset Btn" Binding="{Binding ResetButton}" Width="*" MinWidth="80"/>
-                            <DataGridTextColumn Header="STBY Lamp" Binding="{Binding StandByLamp}" Width="*" MinWidth="80"/>
-                            <DataGridTextColumn Header="Low Press" Binding="{Binding TXLowpress}" Width="*" MinWidth="80"/>
-                        </DataGrid.Columns>
-                        
-                        <!-- 데이터가 없을 때 표시할 메시지 -->
-                        <DataGrid.Style>
-                            <Style TargetType="DataGrid">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding ViewModel.TestRawDataTimelineItems.Count}" Value="0">
-                                        <Setter Property="Template">
-                                            <Setter.Value>
-                                                <ControlTemplate TargetType="DataGrid">
-                                                    <Border BorderBrush="{TemplateBinding BorderBrush}" 
-                                                            BorderThickness="{TemplateBinding BorderThickness}" 
-                                                            Background="{TemplateBinding Background}">
-                                                        <Grid>
-                                                            <ScrollViewer x:Name="DG_ScrollViewer" Focusable="false">
-                                                                <ItemsPresenter x:Name="ItemsPresenter" 
-                                                                              SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
-                                                            </ScrollViewer>
-                                                            <TextBlock Text="전송된 CAN 데이터가 없습니다." 
-                                                                       Foreground="#F3F3F3" 
-                                                                       HorizontalAlignment="Center" 
-                                                                       VerticalAlignment="Center" 
-                                                                       FontSize="16"
-                                                                       Opacity="0.7"/>
-                                                        </Grid>
-                                                    </Border>
-                                                </ControlTemplate>
-                                            </Setter.Value>
-                                        </Setter>
-                                    </DataTrigger>
-                                </Style.Triggers>
+                        <!-- 카드 간격 -->
+                        <ItemsControl.ItemContainerStyle>
+                            <Style TargetType="ContentPresenter">
+                                <Setter Property="Margin" Value="0"/>
                             </Style>
-                        </DataGrid.Style>
-                    </DataGrid>
-                </Grid>
-            </ui:Card>
-        </Grid>
+                        </ItemsControl.ItemContainerStyle>
 
-        <Grid Grid.Row="1">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,10">
-                <!-- CAN 시뮬레이션 제어 버튼들 -->
-                <ui:Button 
-                    Content="CAN 데이터 송수신 시작"
-                    Command="{Binding ViewModel.StartCANSimulationCommand}"
-                    Background="#29A745"
-                    Foreground="#F3F3F3"
-                    BorderBrush="#0D7F33"
-                    Margin="0,0,10,0"
-                    ToolTip="가상 CAN 데이터 송수신 시작"/>
-                
-                <ui:Button 
-                    Content="CAN 데이터 송수신 중지"
-                    Command="{Binding ViewModel.StopCANSimulationCommand}"
-                    Background="#E23B3B"
-                    Foreground="#F3F3F3"
-                    BorderBrush="#9D1E1E"
-                    Margin="0,0,10,0"
-                    ToolTip="가상 CAN 데이터 송수신 중지"/>
-                
-                <ui:Button 
-                    Content="CAN 설정"
-                    Command="{Binding ViewModel.ShowCANSettingsCommand}"
-                    Background="#17A2B8"
-                    Foreground="#F3F3F3"
-                    BorderBrush="#117A8B"
-                    Margin="0,0,10,0"
-                    ToolTip="CAN 통신 설정"/>
-            </StackPanel>
-        </Grid>
-        
-        <!-- 하단: 개별 ID 상태 카드 3개 -->
-        <Grid Grid.Row="2">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
+                        <!-- 카드 템플릿 -->
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border  Style="{StaticResource Card}"  ClipToBounds="True">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
 
-            <Grid x:Name="deviceCard" Grid.Column="0" Visibility="Visible">
-                <Controls:DeviceStatusCard DataContext="{Binding DeviceStatusCardViewModel.DeviceStatusCardModels}"/>
-            </Grid>
+                                        <!-- 제목 -->
+                                        <ContentPresenter Grid.Row="0" Content="{Binding Title, FallbackValue=ID}"  Uid="Info28" ToolTip="" Tag="가상 장치" ContentTemplate="{StaticResource CardHeaderTemplate}" />
+
+                                        <Grid Grid.Row="1">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="*"/>
+                                                <RowDefinition Height="*"/>
+                                                <RowDefinition Height="*"/>
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- 내용 행들 -->
+                                            <!--<StackPanel Grid.Row="0" Grid.Column="0" Style="{StaticResource InfoRow}">
+                                                <Ellipse Style="{StaticResource InfoEllipse}" Fill="#62FF94" />
+                                                <TextBlock Text="통신 상태" Style="{StaticResource Caption}"/>
+                                                <TextBlock Text="{Binding CommStatus}" Style="{StaticResource InfoValue}"/>
+                                            </StackPanel>-->
+
+                                            <StackPanel Grid.Row="1" Grid.Column="0" Style="{StaticResource InfoRow}">
+                                                <Ellipse Style="{StaticResource InfoEllipse}" Fill="#62FF94" />
+                                                <TextBlock Text="운전 상태" Style="{StaticResource Caption}"/>
+                                                <TextBlock Text="{Binding RunStatus}" Style="{StaticResource InfoValue}"/>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Row="2" Grid.Column="0"  Style="{StaticResource InfoRow}">
+                                                <Ellipse Style="{StaticResource InfoEllipse}" Fill="#62FF94" />
+                                                <TextBlock Text="운전 모드" Style="{StaticResource Caption}"/>
+                                                <TextBlock Text="{Binding Mode}" Style="{StaticResource InfoValue}"/>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Row="0" Grid.Column="0" Style="{StaticResource InfoRow}">
+                                                <Ellipse Style="{StaticResource InfoEllipse}" Fill="#62FF94" />
+                                                <TextBlock Text="STBY LAMP" Style="{StaticResource Caption}"/>
+                                                <TextBlock Text="{Binding StandbyLamp}" Style="{StaticResource InfoValue}"/>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Row="0" Grid.Column="1"  Style="{StaticResource InfoRow}">
+                                                <Ellipse Style="{StaticResource InfoEllipse}" Fill="#62FF94" />
+                                                <TextBlock Text="STBY START " Style="{StaticResource Caption}"/>
+                                                <TextBlock Text="{Binding StandbyStart}" Style="{StaticResource InfoValue}"/>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Row="1" Grid.Column="1" Style="{StaticResource InfoRow}">
+                                                <Ellipse Style="{StaticResource InfoEllipse}" Fill="#62FF94" />
+                                                <TextBlock Text="OVERLOAD" Style="{StaticResource Caption}"/>
+                                                <TextBlock Text="{Binding Overload}" Style="{StaticResource InfoValue}"/>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Row="2" Grid.Column="1" Style="{StaticResource InfoRow}">
+                                                <Ellipse Style="{StaticResource InfoEllipse}" Fill="#62FF94" />
+                                                <TextBlock Text="LOW PRESS" Style="{StaticResource Caption}"/>
+                                                <TextBlock Text="{Binding Lowpress}" Style="{StaticResource InfoValue}"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Border>
         </Grid>
-    </Grid>
+    </DockPanel>
 </Page>

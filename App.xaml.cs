@@ -49,8 +49,6 @@ namespace PSTARV2MonitoringApp
 
                 services.AddSingleton<DashboardPage>();
                 services.AddSingleton<DashboardViewModel>();
-                services.AddSingleton<DashboardPage2>();
-                services.AddSingleton<Dashboard2ViewModel>();
 
                 services.AddSingleton<TestPage>();
                 services.AddSingleton<TestViewModel>();
