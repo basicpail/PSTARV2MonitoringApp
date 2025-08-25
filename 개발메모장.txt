@@ -180,7 +180,8 @@ EE 변수 정의
 RunEE
 HeatEE
 ComStatusEE
-
+RunStopCont 함수 구현
+HandlePowerRecovery 함수 구현
 
 
 타이머 정의
@@ -193,3 +194,34 @@ InitializeDefaultValues 에 값 빠졌는지 확인
 _model.CANTransmitInterval 사용하려면 model 먼저 초기화.
 
 RX데이터 생성하는 로직 구현해야 함
+
+
+---------------------
+DeviceCard 의 Width 잘림 문제
+
+※※※※※※※※※※※※※※※※
+// COM STATUS
+#define Com_Error           0
+#define Com_Normal          1
+-> false 가 Error, true가 Normal다. COM STATUS 관련 플래그들 다 수정해야한다
+※※※※※※※※※※※※※※※※
+-> 완료
+
+STBY_START_ALARM, STAND_BY_SIG 어떻게 처리할지 고민
+SYSTEM_ALARM은 뭐지
+
+STOP 램프 최초 생성 시만 한번에 동작
+-> 루프가 2번 돌아야 된다..
+-> ExecutePSTARLogic를 두번 실행 시켜주면 해결되긴 한다..
+
+근데 타이머 로직을 수행하려면 지속적인 실행이 필요하긴 한데..
+타이머가 끝난후 다시 호출..?
+
+1. 버튼 눌러졌을 때
+2. 타이머 끝 났을 때
+3. CAN 데이터 수신 되었을 때
+
+삭제 기능 확인 -> 서비스가 해제되지 않고 있다. -> 해결
+
+Model의 불필요한 setProperty 다 제거하고, Service 클래스의 멤버로 선언하기
+-> UI 업데이트와 관련된 변수만 setProprty로 정의하기

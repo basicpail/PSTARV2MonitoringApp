@@ -37,7 +37,7 @@ namespace PSTARV2MonitoringApp.Services
             };
 
             // CAN 데이터 수신 이벤트 구독
-            _canService.DataReceived += OnCANDataReceived;
+            //_canService.DataReceived += OnCANDataReceived;
             _canService.ConnectionStatusChanged += OnConnectionStatusChanged;
         }
 

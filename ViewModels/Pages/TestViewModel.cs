@@ -219,15 +219,23 @@ namespace PSTARV2MonitoringApp.ViewModels.Pages
 
         private void RemoveDevice(string deviceId)
         {
-            // ViewModel 제거
-            if (_deviceViewModels.ContainsKey(deviceId))
+            // 장치 ViewModel과 관련 리소스 정리
+            if (_deviceViewModels.TryGetValue(deviceId, out var viewModel))
             {
+                // 중요: ViewModel의 Dispose 메서드 호출하여 리소스 정리
+                viewModel.Dispose();
+
+                // DeviceDeleted 이벤트 핸들러 해제
+                viewModel.DeviceDeleted -= OnDeviceDeleted;
+
+                // 딕셔너리에서 제거
                 _deviceViewModels.Remove(deviceId);
             }
 
-            // Panel 제거
+            // 패널 제거
             if (_devicePanels.ContainsKey(deviceId))
             {
+                // 패널 참조 제거
                 _devicePanels.Remove(deviceId);
             }
 
@@ -236,11 +244,37 @@ namespace PSTARV2MonitoringApp.ViewModels.Pages
             if (deviceInfo != null)
             {
                 var targetGrid = GetTargetGridByDeviceId(deviceInfo);
-                targetGrid?.Children.Clear();
-                
-                // 제거 로그 추가
-                _logService.AddLog(deviceInfo.DisplayText, "장치 제거됨");
+                if (targetGrid != null)
+                {
+                    targetGrid.Children.Clear();
+                }
+
+                // 로그에 장치 제거 기록
+                _logService.LogDeviceRemoved(deviceInfo.DisplayText);
             }
+
+            //// ViewModel 제거
+            //if (_deviceViewModels.ContainsKey(deviceId))
+            //{
+            //    _deviceViewModels.Remove(deviceId);
+            //}
+
+            //// Panel 제거
+            //if (_devicePanels.ContainsKey(deviceId))
+            //{
+            //    _devicePanels.Remove(deviceId);
+            //}
+
+            //// UI에서 제거
+            //var deviceInfo = DeviceInfo.GetDeviceIdById(deviceId);
+            //if (deviceInfo != null)
+            //{
+            //    var targetGrid = GetTargetGridByDeviceId(deviceInfo);
+            //    targetGrid?.Children.Clear();
+
+            //    // 제거 로그 추가
+            //    _logService.AddLog(deviceInfo.DisplayText, "장치 제거됨");
+            //}
         }
 
         /// <summary>

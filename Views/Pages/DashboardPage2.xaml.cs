@@ -1,10 +1,12 @@
-﻿using System;
+﻿using PSTARV2MonitoringApp.ViewModels.Pages;
+using System;
 using System.Windows;
 using System.Windows.Controls;
+using Wpf.Ui.Abstractions.Controls;
 
 namespace PSTARV2MonitoringApp.Views.Pages
 {
-    public partial class DashboardPage2 : Page
+    public partial class DashboardPage2 : INavigableView<Dashboard2ViewModel>
     {
         double DataGridHeightRatio = 0.67;
         public Dashboard2ViewModel ViewModel { get; }

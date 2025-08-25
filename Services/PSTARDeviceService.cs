@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.Eventing.Reader;
 using System.Timers;
 using PSTARV2MonitoringApp.Models;
 using Timer = System.Timers.Timer;
@@ -16,6 +17,12 @@ namespace PSTARV2MonitoringApp.Services
         private readonly uint _canId;
         private readonly uint CAN_ID;
         private readonly int _canTransmitInterval = 1000; // CAN 전송 주기 (ms)
+        private readonly int _deviceLoopInterval; // TMR0 가 100ms 주기라서, Logic 수행도 이 주기로 맞춤
+        private int _count100_mS = 0;
+        private DateTime _startButtonPressedTime = DateTime.MinValue;
+        private DateTime _stopButtonPressedTime = DateTime.MinValue;
+        private DateTime _modeButtonPressedTime = DateTime.MinValue;
+        private DateTime _heatButtonPressedTime = DateTime.MinValue;
 
         // CAN 전송 타이머 (로직 타이머는 제거)
         private readonly Timer _transmitTimer;
@@ -30,7 +37,11 @@ namespace PSTARV2MonitoringApp.Services
         private int _buildUpTime = 5;   // BuildUp 시간 (초)
         private int _parallelTime = 10; // Parallel 시간 (초)
         private int _seqTime_mS = 10;   // Sequential Time (초)
-        private bool _requestFlag = false;      // 실행 요청 플래그
+        private bool _requestFlag = false;  // 실행 요청 플래그
+        
+        //이 플래그만 특이하게 값이 반대라서 선언
+        private bool Com_Error = false;
+        private bool Com_Normal = true;
         #endregion
 
         #region 이벤트
@@ -99,6 +110,8 @@ namespace PSTARV2MonitoringApp.Services
             _deviceTimer = new Timer();
 
 
+            StartSimulation(); //카드 생성 될 때 바로 시작 되도록 수정
+            //RunStopCont();
         }
 
         /// <summary>
@@ -140,9 +153,13 @@ namespace PSTARV2MonitoringApp.Services
         {
             _transmitTimer.Start();
 
-            // 초기 로직 실행
-            ExecutePSTARLogic();
+            _deviceTimer.Interval = _deviceLoopInterval;
+            _deviceTimer.Elapsed += OnDeviceTimerElapsed;
+            _deviceTimer.AutoReset = true;
+            _deviceTimer.Start();
         }
+
+        
 
         /// <summary>
         /// 시뮬레이션 중지
@@ -150,6 +167,123 @@ namespace PSTARV2MonitoringApp.Services
         public void StopSimulation()
         {
             _transmitTimer.Stop();
+            _deviceTimer.Stop();
+        }
+
+
+        /// <summary>
+        /// 장치 타이머 이벤트 핸들러 - 펌웨어의 TMR0_DefaultInterruptHandler에 해당
+        /// </summary>
+        private void OnDeviceTimerElapsed(object sender, ElapsedEventArgs e)
+        {
+            if(_model == null) return;
+
+            ResetButtonStates();
+
+            // 100ms 단위로 증가하는 카운터
+            _count100_mS++;
+
+            // 시퀀스 타임 카운트
+            _model.CountSeqTime_mS++;
+
+            // 기타 밀리초 단위 카운터 증가
+            _model.CountComFailLamp_mS++;
+            _model.CountStandByCheck_mS++;
+
+            // StandBy_2_Flag 상태에 따른 카운트
+            if (_model.StandBy_2_Flag)
+                _model.CountStandBy_2_mS++;
+            else
+                _model.CountStandBy_2_mS = 0;
+
+            // 1초 단위(10 * 100ms)로 실행되는 코드
+            if (_count100_mS == 9)
+            {
+                // 히팅 타임 카운트
+                if (_model.HeatStatus)
+                    _model.CountHeatingOnTime_S++;
+
+                // 병렬 타임 카운트
+                if (_model.CountParaStart)
+                    _model.CountParallelTime_S++;
+
+                // 빌드업 타임 카운트
+                if (_model.CountBuildUpStart)
+                    _model.CountBuildUpTime_S++;
+
+                // 리셋 버튼 카운트
+                if (!_model.STOP_PB_I)
+                    _model.CountResetButton_S++;
+                else
+                    _model.CountResetButton_S = 0;
+
+                // 통신 장애 카운트
+                _model.CountComFault1_S++;
+                if (_model.CountComFault1_S >= 100)
+                    _model.CountComFault1_S = 100;
+
+                _model.CountComFault2_S++;
+                if (_model.CountComFault2_S >= 100)
+                    _model.CountComFault2_S = 100;
+
+                _model.CountComFault3_S++;
+                if (_model.CountComFault3_S >= 100)
+                    _model.CountComFault3_S = 100;
+
+                // 초기화 카운트
+                _model.CountComInit++;
+                if (_model.CountComInit >= 100)
+                    _model.CountComInit = 100;
+
+                // 과부하 상태에서 실행 요청 카운트
+                if (_model.Overload)
+                    _model.CountRunReq_S++;
+
+                // 과부하 플래그에 따른 카운트
+                if (_model.CountOverload_Flag)
+                    _model.CountOverload_S++;
+                else
+                    _model.CountOverload_S = 0;
+
+                
+            }
+            else if (_count100_mS == 10)
+            {
+                _count100_mS = 0;
+            }
+
+            ExecutePSTARLogic();
+
+        }
+
+        /// <summary>
+        /// 버튼 상태 자동 리셋 - 버튼이 눌린 후 지정된 시간이 지나면 자동으로 해제
+        /// </summary>
+        private void ResetButtonStates()
+        {
+            // 시작 버튼 처리
+            if (_model.START_PB_I && DateTime.Now - _startButtonPressedTime > TimeSpan.FromMilliseconds(300))
+            {
+                _model.START_PB_I = !_model.START_PB_I;
+            }
+
+            // 정지 버튼 처리
+            if (_model.STOP_PB_I && DateTime.Now - _stopButtonPressedTime > TimeSpan.FromMilliseconds(300))
+            {
+                _model.STOP_PB_I = !_model.STOP_PB_I;
+            }
+
+            // 모드 버튼 처리
+            if (_model.MODE_PB_I && DateTime.Now - _modeButtonPressedTime > TimeSpan.FromMilliseconds(300))
+            {
+                _model.MODE_PB_I = !_model.MODE_PB_I;
+            }
+
+            // 히트 버튼 처리
+            if (_model.HEAT_PB_I && DateTime.Now - _heatButtonPressedTime > TimeSpan.FromMilliseconds(300))
+            {
+                _model.HEAT_PB_I = !_model.HEAT_PB_I;
+            }
         }
 
         /// <summary>
@@ -161,19 +295,24 @@ namespace PSTARV2MonitoringApp.Services
 
             // PSTARFW.c의 메인 루프 로직 구현
             HandlePowerRecovery();
-            UpdatePressureStatus();
-            ProcessInputs();
+            //UpdatePressureStatus();
+            //ProcessInputs();
             RunStopProc(_model.RunStatus);
             RunInput();
+            HeatCont(_model.HeatStatus);
             HeatProc(_model.HeatStatus);
             ModeProc(_model.ModeStatus);
             KeyProc();
             OverloadProc(_model.Overload_I);
             LowpressProc(_model.Lowpress_I);
             ComFailErrorFlag();
-            ReceiveRunReq();
+            //여기에 CanRevMsg
+            ReceiveRunReq(); 
             SendRunReq();
+
             ConnectFunction();
+            ConnectProc(_model.ComStatus);
+
             StandByLampProc(_model.ModeStatus);
             StbyStartAlarm();
         }
@@ -193,8 +332,42 @@ namespace PSTARV2MonitoringApp.Services
         {
             if (_model == null) return;
 
+            uint id = frame.Id;
+            byte[] data = frame.Data;
+
+            // 각 장치는 다른 장치들의 데이터를 저장
+            if (id == 0x100) // 1번 장치에서 온 메시지
+            {
+                // 통신 오류 카운터 리셋
+                if (CAN_ID != 1) // 자신이 보낸 메시지는 무시
+                {
+                    _model.RX_Data1 = data;
+                    _model.CountComFault1_S = 0;
+                    Console.WriteLine($"ID=0x{id:X3}, 장치1 데이터: {BitConverter.ToString(data).Replace("-", " ")}");
+                }
+            }
+            else if (id == 0x200) // 2번 장치에서 온 메시지
+            {
+                if (CAN_ID != 2) // 자신이 보낸 메시지는 무시
+                {
+                    _model.RX_Data2 = data;
+                    _model.CountComFault2_S = 0;
+                    Console.WriteLine($"ID=0x{id:X3}, 장치2 데이터: {BitConverter.ToString(data).Replace("-", " ")}");
+                }
+            }
+            else if (id == 0x300) // 3번 장치에서 온 메시지
+            {
+                if (CAN_ID != 3) // 자신이 보낸 메시지는 무시
+                {
+                    _model.RX_Data3 = data;
+                    _model.CountComFault3_S = 0;
+                    Console.WriteLine($"ID=0x{id:X3}, 장치3 데이터: {BitConverter.ToString(data).Replace("-", " ")}");
+                }
+            }
+            //Console.WriteLine($"수신 데이터: ID=0x{canFrame.Id:X3}, Data={BitConverter.ToString(canFrame.Data).Replace("-", " ")}");
+
             // 모델에 프레임 처리 위임
-            _model.ProcessReceivedCANFrame(frame);
+            //_model.ProcessReceivedCANFrame(frame);
         }
 
         /// <summary>
@@ -229,7 +402,7 @@ namespace PSTARV2MonitoringApp.Services
             CANDataTransmitted?.Invoke(this, new CANTransmitEventArgs(frame));
         }
 
-        #region PSTARFW.c 함수 구현
+        #region PSTAR 기능 구현
 
         // SeqTime_mS 변수 추가
 
@@ -238,39 +411,44 @@ namespace PSTARV2MonitoringApp.Services
         /// </summary>
         private void HandlePowerRecovery()
         {
+            /*
+             * //---------------------------RUN---------------------------
+                if(RunEE == STOP)                          RunStopCont(STOP);
+                else if(RunEE == RUN && OVERLOAD_I == OFF) InitFlag = 1;
+             */
             if (_model == null) return;
 
-            if (_model.InitFlag)
+            if (_model.InitFlag == true)
             {
                 if (_seqTime_mS < 630) // 0~62s : UVR
                 {
                     // Push the Reset Button -> STANDBY LAMP ON (Change MAIN Pump : MAIN -> STBY)
-                    if (_model.ModeStatus &&
+                    if (_model.ModeStatus == true &&
                         ((_model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1) ||
-                         (_model.RX_Data2[1] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1) ||
-                         (_model.RX_Data3[1] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1)))
+                         (_model.RX_Data2[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data2[CANDataIndices.STANDBY_LAMP] == 1) ||
+                         (_model.RX_Data3[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data3[CANDataIndices.STANDBY_LAMP] == 1)))
                     {
                         _model.RunStatus = false;
-                        // EEPROM 저장 부분은 C#에서는 제외
+                        // EEPROM 저장 부분은 제외
                         _model.InitFlag = false;
                     }
                     // After Power Fail (3 ST'BY(2 RUN) - MAIN 1 & MAIN2)
-                    else if ((_deviceId == "1" && _model.RX_Data2[1] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && _model.RX_Data3[1] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1) ||
-                             (_deviceId == "2" && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && _model.RX_Data3[1] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1) ||
-                             (_deviceId == "3" && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && _model.RX_Data2[1] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1))
+                    else if ((CAN_ID == 1 && _model.RX_Data2[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data2[CANDataIndices.MODE_STATUS] == 1 && _model.RX_Data3[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data3[CANDataIndices.MODE_STATUS] == 1) ||
+                             (CAN_ID == 2 && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data3[CANDataIndices.MODE_STATUS] == 1 && _model.RX_Data3[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1) ||
+                             (CAN_ID == 3 && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && _model.RX_Data2[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data2[CANDataIndices.MODE_STATUS] == 1))
                     {
                         _model.RunStatus = false;
-                        // EEPROM 저장 부분은 C#에서는 제외
+                        // EEPROM 저장 부분은 제외
                         _model.InitFlag = false;
                     }
                     // After Power Fail (3 ST'BY(1 RUN) - ST'BY)
-                    else if (_model.ComStatus == 5 && // StandBy_3_1RUN
+                    else if (_model.ComStatus == COMStatusIndices.StandBy_3_1RUN && // StandBy_3_1RUN
                             ((_model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data1[CANDataIndices.RESET_BUTTON] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1) ||
-                             (_model.RX_Data2[1] == 0 && _model.RX_Data1[CANDataIndices.RESET_BUTTON] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1) ||
-                             (_model.RX_Data3[1] == 0 && _model.RX_Data1[CANDataIndices.RESET_BUTTON] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1)))
+                             (_model.RX_Data2[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data2[CANDataIndices.RESET_BUTTON] == 1 && _model.RX_Data2[CANDataIndices.STANDBY_LAMP] == 1) ||
+                             (_model.RX_Data3[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data3[CANDataIndices.RESET_BUTTON] == 1 && _model.RX_Data3[CANDataIndices.STANDBY_LAMP] == 1)))
                     {
                         _model.RunStatus = false;
-                        // EEPROM 저장 부분은 C#에서는 제외
+                        // EEPROM 저장 부분은 제외
                         _model.InitFlag = false;
                     }
                     // Sequential Time (MANUAL RUN / 2 STAND BY RUN & RUN / Power Recovery Before 1s (MAIN -> MAIN))
@@ -280,24 +458,25 @@ namespace PSTARV2MonitoringApp.Services
                         _model.STOP_LAMP = false;
 
                         // CountSeqTime_mS가 SeqTime_mS에 도달하면 RUN 상태로 변경
-                        if (_model.CountSeqTime_S * 1000 >= _seqTime_mS) // CountSeqTime_S는 초 단위, _seqTime_mS는 밀리초 단위
-                        {
+                        //if (_model.CountSeqTime_mS * 1000 >= _seqTime_mS) // CountSeqTime_mS는 초 단위, _seqTime_mS는 밀리초 단위
+                        if (_model.CountSeqTime_mS >= _seqTime_mS) // CountSeqTime_mS는 초 단위, _seqTime_mS는 밀리초 단위
+                            {
                             _model.RunStatus = true;
                             _model.InitFlag = false;
-                            _model.CountSeqTime_S = 0;
+                            _model.CountSeqTime_mS = 0;
                         }
                     }
                 }
                 else if (_seqTime_mS == 630) // 63s : UVP
                 {
                     _model.RunStatus = false;
-                    // EEPROM 저장 부분은 C#에서는 제외
+                    // EEPROM 저장 부분은 제외
                     _model.InitFlag = false;
                 }
             }
-            else
+            else if (_model.InitFlag == false)
             {
-                _model.CountSeqTime_S = 0;
+                _model.CountSeqTime_mS = 0;
             }
 
             // 다른 장치의 과부하 상태 확인
@@ -396,7 +575,7 @@ namespace PSTARV2MonitoringApp.Services
         {
             if (_model == null) return;
 
-            if (_model.START_PB_I) // Run Signal ON & Run Input ON -> Run Lamp ON
+            if (_model.START_PB_I == true) // Run Signal ON & Run Input ON -> Run Lamp ON
             {
                 _model.RUN_LAMP = true;
                 _model.STOP_LAMP = false;
@@ -555,10 +734,7 @@ namespace PSTARV2MonitoringApp.Services
             if (_model == null) return;
 
             _model.START_PB_I = true; // Start 버튼 누름 신호
-            // 상태 변경 시 로직 실행
-            ExecutePSTARLogic();
-            _model.START_PB_I = false; // Start 버튼 누름 신호
-
+            _startButtonPressedTime = DateTime.Now;
         }
 
         /// <summary>
@@ -569,10 +745,7 @@ namespace PSTARV2MonitoringApp.Services
             if (_model == null) return;
 
             _model.STOP_PB_I = true; // Stop 버튼 누름 신호
-            // 상태 변경 시 로직 실행
-            ExecutePSTARLogic();
-            _model.STOP_PB_I = false; // Stop 버튼 누름 신호
-
+            _stopButtonPressedTime = DateTime.Now;
         }
 
         /// <summary>
@@ -583,10 +756,7 @@ namespace PSTARV2MonitoringApp.Services
             if (_model == null) return;
 
             _model.MODE_PB_I = true; // Mode 버튼 누름 신호
-            // 상태 변경 시 로직 실행
-            ExecutePSTARLogic();
-            _model.MODE_PB_I = false; // Mode 버튼 누름 신호
-
+            _modeButtonPressedTime = DateTime.Now;
         }
 
         /// <summary>
@@ -597,9 +767,7 @@ namespace PSTARV2MonitoringApp.Services
             if (_model == null) return;
 
             _model.HEAT_PB_I = true; // Heat 버튼 누름 신호
-            // 상태 변경 시 로직 실행
-            ExecutePSTARLogic();
-            _model.HEAT_PB_I = false; // Heat 버튼 누름 신호
+            _heatButtonPressedTime = DateTime.Now;
         }
 
         /// <summary>
@@ -639,6 +807,7 @@ namespace PSTARV2MonitoringApp.Services
             }
         }
 
+        #region LowpressProc 정의
         /// <summary>
         /// 저압 처리
         /// </summary>
@@ -746,7 +915,9 @@ namespace PSTARV2MonitoringApp.Services
             _model.OldLowpress = _model.Lowpress;
             _model.OldRunStatus = _model.RunStatus;
         }
+        #endregion
 
+        #region ComFailErrorFlag 정의
         /// <summary>
         /// 통신 오류 플래그 처리
         /// </summary>
@@ -756,10 +927,11 @@ namespace PSTARV2MonitoringApp.Services
 
             //--------------------------COM FAIL - CAN ID 1--------------------------
             //Error_Flag : False면 Com_Normal, True면 Com_Error
-            if (_model.CountComFault1_S > _model.ComFault_S && _model.Error_Flag1 == false && CAN_ID != 1)
+            //Error_Flag : False면 Com_Error, True면 Com_Normal
+            if (_model.CountComFault1_S > _model.ComFault_S && _model.Error_Flag1 == Com_Normal && CAN_ID != 1)
             //ID1로부터 일정 시간(현재 1초) 이상 프레임이 안 옴을 뜻한다. 자기 자신에 대한 오류는 세지 않음
             {
-                _model.Error_Flag1 = true; //Com_Error
+                _model.Error_Flag1 = Com_Error;
 
                 if(_model.STAND_BY_LAMP == true && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 1)
                 //StandBy 모드에서 통신 오류 발생 시 자동 전환
@@ -774,18 +946,18 @@ namespace PSTARV2MonitoringApp.Services
                 //초기화 구간(ComInit_S초)이 지나가기 전에는 에러 해제를 하지 않도록 하는 해제 지연.
             {
                 //다시 정상적으로 수신되고 있다고 판단하고 Error_Flag를 False로 바꿈
-                if (_model.CountComFault1_S <= _model.ComFault_S && _model.Error_Flag1 == true && CAN_ID != 1) _model.Error_Flag1 = false; //Com_Normal
+                if (_model.CountComFault1_S <= _model.ComFault_S && _model.Error_Flag1 == Com_Error && CAN_ID != 1) _model.Error_Flag1 = Com_Normal; //Com_Normal
             }
 
             //ID1이 MANUAL 모드(0) 라면, 스탠바이/병행 전환이 불가능하다고 보고 사실상 연결 불가(Com_Error)로 취급
-            if (_model.RX_Data1[CANDataIndices.MODE_STATUS] == 0 && CAN_ID != 1) _model.Error_Flag1 = true; //MANUAL_MODE -> Com_Error
+            if (_model.RX_Data1[CANDataIndices.MODE_STATUS] == 0 && CAN_ID != 1) _model.Error_Flag1 = Com_Error; //MANUAL_MODE -> Com_Error
             //ID1이 STBY 모드(1) 라면 전환 상태이므로 Com_Normal로 설정
-            else if (_model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && CAN_ID != 1) _model.Error_Flag1 = false; //STBY_MODE -> Com_Normal
+            else if (_model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && CAN_ID != 1) _model.Error_Flag1 = Com_Normal; //STBY_MODE -> Com_Normal
 
             //--------------------------COM FAIL - CAN ID 2--------------------------
-            if (_model.CountComFault2_S > _model.ComFault_S && _model.Error_Flag2 == false && CAN_ID != 2)
+            if (_model.CountComFault2_S > _model.ComFault_S && _model.Error_Flag2 == Com_Normal && CAN_ID != 2)
             {
-                _model.Error_Flag2 = true; //Com_Error
+                _model.Error_Flag2 = Com_Error; //Com_Error
 
                 if (_model.STAND_BY_LAMP == true && _model.RX_Data2[CANDataIndices.RUN_LAMP] == 1)
                 {
@@ -796,16 +968,16 @@ namespace PSTARV2MonitoringApp.Services
             }
             else if (_model.CountComInit == _model.ComInit_S || _model.CountComInit > _model.ComInit_S) 
             {
-                if (_model.CountComFault2_S <= _model.ComFault_S && _model.Error_Flag2 == true && CAN_ID != 2) _model.Error_Flag2 = false; //Com_Normal
+                if (_model.CountComFault2_S <= _model.ComFault_S && _model.Error_Flag2 == Com_Error && CAN_ID != 2) _model.Error_Flag2 = Com_Normal; //Com_Normal
             }
-            if (_model.RX_Data2[CANDataIndices.MODE_STATUS] == 0 && CAN_ID != 2) _model.Error_Flag2 = true; //MANUAL_MODE -> Com_Error
+            if (_model.RX_Data2[CANDataIndices.MODE_STATUS] == 0 && CAN_ID != 2) _model.Error_Flag2 = Com_Error; //MANUAL_MODE -> Com_Error
             //ID1이 STBY 모드(1) 라면 전환 상태이므로 Com_Normal로 설정
-            else if (_model.RX_Data2[CANDataIndices.MODE_STATUS] == 1 && CAN_ID != 2) _model.Error_Flag2 = false; //STBY_MODE -> Com_Normal
+            else if (_model.RX_Data2[CANDataIndices.MODE_STATUS] == 1 && CAN_ID != 2) _model.Error_Flag2 = Com_Normal; //STBY_MODE -> Com_Normal
 
             //--------------------------COM FAIL - CAN ID 3--------------------------
-            if (_model.CountComFault3_S > _model.ComFault_S && _model.Error_Flag3 == false && CAN_ID != 3)
+            if (_model.CountComFault3_S > _model.ComFault_S && _model.Error_Flag3 == Com_Normal && CAN_ID != 3)
             {
-                _model.Error_Flag3 = true; //Com_Error
+                _model.Error_Flag3 = Com_Error; //Com_Error
 
                 if (_model.STAND_BY_LAMP == true && _model.RX_Data3[CANDataIndices.RUN_LAMP] == 1)
                 {
@@ -816,12 +988,14 @@ namespace PSTARV2MonitoringApp.Services
             }
             else if (_model.CountComInit == _model.ComInit_S || _model.CountComInit > _model.ComInit_S)
             {
-                if (_model.CountComFault3_S <= _model.ComFault_S && _model.Error_Flag3 == true && CAN_ID != 3) _model.Error_Flag3 = false; //Com_Normal
+                if (_model.CountComFault3_S <= _model.ComFault_S && _model.Error_Flag3 == Com_Error && CAN_ID != 3) _model.Error_Flag3 = Com_Normal; //Com_Normal
             }
-            if (_model.RX_Data3[CANDataIndices.MODE_STATUS] == 0 && CAN_ID != 3) _model.Error_Flag3 = true; //MANUAL_MODE -> Com_Error
+            if (_model.RX_Data3[CANDataIndices.MODE_STATUS] == 0 && CAN_ID != 3) _model.Error_Flag3 = Com_Error; //MANUAL_MODE -> Com_Error
             //ID1이 STBY 모드(1) 라면 전환 상태이므로 Com_Normal로 설정
-            else if (_model.RX_Data3[CANDataIndices.MODE_STATUS] == 1 && CAN_ID != 3) _model.Error_Flag3 = false; //STBY_MODE -> Com_Normal
+            else if (_model.RX_Data3[CANDataIndices.MODE_STATUS] == 1 && CAN_ID != 3) _model.Error_Flag3 = Com_Normal; //STBY_MODE -> Com_Normal
         }
+
+        #endregion
 
         /// <summary>
         /// CAN메시지 수신 처리
@@ -833,8 +1007,7 @@ namespace PSTARV2MonitoringApp.Services
             _model.CountComFault3_S = 0;
         }
 
-        #region StandByLampProc
-        ////////////////////////////StandByLampProc 관련 로직////////////////////////////////////
+        #region StandByLampProc 정의
         /// <summary>
         /// StandBy 램프 처리
         /// </summary>
@@ -846,7 +1019,7 @@ namespace PSTARV2MonitoringApp.Services
             {
                 switch (_model.ComStatus)
                 {
-                    case 3: // StandBy_3(3대 연결) 상황에서 누가 메인 누가 스탠바이인지를 정하는 규칙
+                    case 3: // StandBy_3(3대 연결 정상, 보통 2대 RUN) 상황에서 누가 메인 누가 스탠바이인지를 정하는 규칙
                         // 사고 후 메인 펌프 쪽 로직
                         // AFTER LOW PRESSURE / OVERLOAD / POWER FAIL - MAIN PUMP
                         if (_model.Overload == false &&
@@ -925,7 +1098,7 @@ namespace PSTARV2MonitoringApp.Services
                     case 2: // StandBy_2
                     case 1: // StandBy_3to2
                     case 6: // StandBy_3to2_1RUN
-                        HandleStandBy_2_or_3to2();
+                        HandleStandBy_2_StandBy_3to2_StandBy_3to2_1RUN();
                         break;
                 }
             }
@@ -935,11 +1108,11 @@ namespace PSTARV2MonitoringApp.Services
             }
 
             // StandBy 신호 출력
-            _model.STAND_BY_LAMP = _model.MODE_STBY_LAMP;
+            // 가상장치에서는 무시
         }
 
         /// <summary>
-        /// StandBy_3_1RUN 상태 처리 (코드 구조화를 위한 분리 메서드)
+        /// StandBy_3_1RUN 상태 처리 (3대 연결 정상, 1대만 Run)
         /// 3대 연결인데 1대만 RUN 중일 때 standby 역활을 누구에게 줄지 정하고, 중복 STBY 지정이나 오작동을 방지하는 로직
         /// </summary>
         private void HandleStandBy_3_1RUN()
@@ -1229,210 +1402,217 @@ namespace PSTARV2MonitoringApp.Services
         }
 
         /// <summary>
-        /// StandBy_2 또는 StandBy_3to2 상태 처리
+        /// StandBy_2(2대만 연결 운영) 또는 StandBy_3to2 또는 StandBy_3to2_1RUN 상태 처리
         /// </summary>
-        private void HandleStandBy_2_or_3to2()
+        private void HandleStandBy_2_StandBy_3to2_StandBy_3to2_1RUN()
         {
-            // 장치 ID에 따른 조건 처리
-            if (_model.Error_Flag1 == false && _deviceId != "1")
+            _model.StandBy_2_Flag = true;
+            // 장치ID에 따른 조건 처리
+            if (_model.CountStandBy_2_mS >= 5)
             {
-                // AFTER LOW PRESSURE / OVERLOAD / POWER FAIL - MAIN PUMP
-                if (!_model.Overload && (_model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1))
+                if (_model.Error_Flag1 == Com_Normal)
                 {
-                    if (_model.ResetButton)
+                    // AFTER LOW PRESSURE / OVERLOAD / POWER FAIL - MAIN PUMP
+                    if (_model.Overload == false && (_model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1))
                     {
-                        _model.STAND_BY_LAMP = true; // CHANGE MAIN PUMP (MAIN -> STBY)
-                        if (_model.StandBy_3_1RUN_Flag == true)
+                        if (_model.ResetButton == true)
                         {
-                            _model.StandBy_3_1RUN_Flag = false;
+                            _model.STAND_BY_LAMP = true; // CHANGE MAIN PUMP (MAIN -> STBY)
+                            if (_model.StandBy_3_1RUN_Flag == true)
+                            {
+                                _model.StandBy_3_1RUN_Flag = false;
+                            }
                         }
                     }
-                }
-                // AFTER LOW PRESSURE / OVERLOAD / POWER FAIL - ST'BY PUMP
-                else if (_model.RUN_LAMP && _model.STAND_BY_LAMP)
-                {
-                    if (_model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data1[CANDataIndices.RESET_BUTTON] == 1)
+
+                    // AFTER LOW PRESSURE / OVERLOAD / POWER FAIL - ST'BY PUMP
+                    else if (_model.RX_Data1[CANDataIndices.OVERLOAD] == 0 && _model.RUN_LAMP == true && _model.StandByLamp == true)
                     {
-                        _model.STAND_BY_LAMP = false; // CHANGE MAIN PUMP (STBY -> MAIN)
-                        if (_model.StandBy_3_1RUN_Flag == true)
+                        if (_model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data1[CANDataIndices.RESET_BUTTON] == 1)
                         {
-                            _model.StandBy_3_1RUN_Flag = false;
+                            _model.STAND_BY_LAMP = false; // CHANGE MAIN PUMP (STBY -> MAIN)
+                            if (_model.StandBy_3_1RUN_Flag == true)
+                            {
+                                _model.StandBy_3_1RUN_Flag = false;
+                            }
+
                         }
                     }
-                }
-                // NORMAL - MAIN PUMP : STBY MODE & RUN / ST'BY PUMP : STAND BY LAMP ON
-                else if (_model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && !_model.Overload && !_model.RUN_LAMP && !_model.InitFlag && _model.STOP_LAMP)
-                {
-                    _model.STAND_BY_LAMP = true;
-                }
-                // NORMAL - MAIN PUMP : STBY MODE & RUN -> STOP / ST'BY PUMP : STAND BY LAMP ON -> OFF
-                else if (_model.StandBy_3_1RUN_Flag == false && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data1[CANDataIndices.OVERLOAD] == 0 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && !_model.RUN_LAMP)
-                {
-                    _model.STAND_BY_LAMP = false;
-                }
-                // NORMAL - MAIN PUMP : MANUAL MODE & RUN / ST'BY PUMP : STAND BY LAMP OFF
-                else if (_model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 0)
-                {
-                    _model.STAND_BY_LAMP = false;
-                }
-            }
-            else if (_model.Error_Flag2 == false && _deviceId != "2")
-            {
-                // AFTER LOW PRESSURE / OVERLOAD / POWER FAIL - MAIN PUMP
-                if (!_model.Overload && (_model.RX_Data2[1] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1))
-                {
-                    if (_model.ResetButton)
+                    // NORMAL - MAIN PUMP : STBY MODE & RUN / ST'BY PUMP : STAND BY LAMP ON
+                    else if (_model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && _model.Overload == false && _model.RUN_LAMP == false && _model.InitFlag == false && _model.STOP_LAMP == true)
                     {
-                        _model.STAND_BY_LAMP = true; // CHANGE MAIN PUMP (MAIN -> STBY)
-                        if (_model.StandBy_3_1RUN_Flag == true)
-                        {
-                            _model.StandBy_3_1RUN_Flag = false;
-                        }
+                        _model.STAND_BY_LAMP = true;
+                    }
+                    // NORMAL - MAIN PUMP : STBY MODE & RUN -> STOP / ST'BY PUMP : STAND BY LAMP ON -> OFF
+                    else if (_model.StandBy_3_1RUN_Flag == false && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data1[CANDataIndices.OVERLOAD] == 0 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && _model.RUN_LAMP == false)
+                    {
+                        _model.STAND_BY_LAMP = false;
+                    }
+                    // NORMAL - MAIN PUMP : MANUAL MODE & RUN / ST'BY PUMP : STAND BY LAMP OFF
+                    else if (_model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 0)
+                    {
+                        _model.STAND_BY_LAMP = false;
                     }
                 }
-                // AFTER LOW PRESSURE / OVERLOAD / POWER FAIL - ST'BY PUMP
-                else if (_model.RUN_LAMP && _model.STAND_BY_LAMP)
+
+                else if (_model.Error_Flag2 == Com_Normal)
                 {
-                    if (_model.RX_Data2[1] == 0 && _model.RX_Data1[CANDataIndices.RESET_BUTTON] == 1)
+                    // AFTER LOW PRESSURE / OVERLOAD / POWER FAIL - MAIN PUMP
+                    if (_model.Overload == false && (_model.RX_Data2[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data2[CANDataIndices.STANDBY_LAMP] == 1))
                     {
-                        _model.STAND_BY_LAMP = false; // CHANGE MAIN PUMP (STBY -> MAIN)
-                        if (_model.StandBy_3_1RUN_Flag == true)
+                        if (_model.ResetButton == true)
                         {
-                            _model.StandBy_3_1RUN_Flag = false;
+                            _model.STAND_BY_LAMP = true; // CHANGE MAIN PUMP (MAIN -> STBY)
+                            if (_model.StandBy_3_1RUN_Flag == true)
+                            {
+                                _model.StandBy_3_1RUN_Flag = false;
+                            }
                         }
                     }
-                }
-                // NORMAL - MAIN PUMP : STBY MODE & RUN / ST'BY PUMP : STAND BY LAMP ON
-                else if (_model.RX_Data2[1] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && !_model.Overload && !_model.RUN_LAMP && !_model.InitFlag && _model.STOP_LAMP)
-                {
-                    _model.STAND_BY_LAMP = true;
-                }
-                // NORMAL - MAIN PUMP : STBY MODE & RUN -> STOP / ST'BY PUMP : STAND BY LAMP ON -> OFF
-                else if (_model.StandBy_3_1RUN_Flag == false && _model.RX_Data2[1] == 0 && _model.RX_Data2[CANDataIndices.OVERLOAD] == 0 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && !_model.RUN_LAMP)
-                {
-                    _model.STAND_BY_LAMP = false;
-                }
-                // NORMAL - MAIN PUMP : MANUAL MODE & RUN / ST'BY PUMP : STAND BY LAMP OFF
-                else if (_model.RX_Data2[1] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 0)
-                {
-                    _model.STAND_BY_LAMP = false;
-                }
-            }
-            else if (_model.Error_Flag3 == false && _deviceId != "3")
-            {
-                // AFTER LOW PRESSURE / OVERLOAD / POWER FAIL - MAIN PUMP
-                if (!_model.Overload && (_model.RX_Data3[1] == 1 && _model.RX_Data1[CANDataIndices.STANDBY_LAMP] == 1))
-                {
-                    if (_model.ResetButton)
+                    // AFTER LOW PRESSURE / OVERLOAD / POWER FAIL - ST'BY PUMP
+                    // Error_Flag1 비교할 때랑 좀 다르네
+                    else if (_model.RUN_LAMP == true && _model.STAND_BY_LAMP == true)
                     {
-                        _model.STAND_BY_LAMP = true; // CHANGE MAIN PUMP (MAIN -> STBY)
-                        if (_model.StandBy_3_1RUN_Flag == true)
+                        if (_model.RX_Data2[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data2[CANDataIndices.RESET_BUTTON] == 1)
                         {
-                            _model.StandBy_3_1RUN_Flag = false;
+                            _model.STAND_BY_LAMP = false; // CHANGE MAIN PUMP (STBY -> MAIN)
+                            if (_model.StandBy_3_1RUN_Flag == true)
+                            {
+                                _model.StandBy_3_1RUN_Flag = false;
+                            }
                         }
                     }
-                }
-                // AFTER LOW PRESSURE / OVERLOAD / POWER FAIL - ST'BY PUMP
-                else if (_model.RUN_LAMP && _model.STAND_BY_LAMP)
-                {
-                    if (_model.RX_Data3[1] == 0 && _model.RX_Data1[CANDataIndices.RESET_BUTTON] == 1)
+                    // NORMAL - MAIN PUMP : STBY MODE & RUN / ST'BY PUMP : STAND BY LAMP ON
+                    else if (_model.RX_Data2[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data2[CANDataIndices.MODE_STATUS] == 1 && _model.Overload == false && _model.RUN_LAMP == false && _model.InitFlag == false && _model.STOP_LAMP == true)
                     {
-                        _model.STAND_BY_LAMP = false; // CHANGE MAIN PUMP (STBY -> MAIN)
-                        if (_model.StandBy_3_1RUN_Flag == true)
-                        {
-                            _model.StandBy_3_1RUN_Flag = false;
-                        }
+                        _model.STAND_BY_LAMP = true;
+                    }
+                    // NORMAL - MAIN PUMP : STBY MODE & RUN -> STOP / ST'BY PUMP : STAND BY LAMP ON -> OFF
+                    else if (_model.StandBy_3_1RUN_Flag == false && _model.RX_Data2[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data2[CANDataIndices.OVERLOAD] == 0 && _model.RX_Data2[CANDataIndices.MODE_STATUS] == 1 && _model.RUN_LAMP == false)
+                    {
+                        _model.STAND_BY_LAMP = false;
+                    }
+                    else if (_model.RX_Data2[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data2[CANDataIndices.MODE_STATUS] == 0)
+                    {
+                        _model.STAND_BY_LAMP = false;
                     }
                 }
-                // NORMAL - MAIN PUMP : STBY MODE & RUN / ST'BY PUMP : STAND BY LAMP ON
-                else if (_model.RX_Data3[1] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && !_model.Overload && !_model.RUN_LAMP && !_model.InitFlag && _model.STOP_LAMP)
+                else if (_model.Error_Flag3 == Com_Normal)
                 {
-                    _model.STAND_BY_LAMP = true;
-                }
-                // NORMAL - MAIN PUMP : STBY MODE & RUN -> STOP / ST'BY PUMP : STAND BY LAMP ON -> OFF
-                else if (_model.StandBy_3_1RUN_Flag == false && _model.RX_Data3[1] == 0 && _model.RX_Data3[CANDataIndices.OVERLOAD] == 0 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 1 && !_model.RUN_LAMP)
-                {
-                    _model.STAND_BY_LAMP = false;
-                }
-                // NORMAL - MAIN PUMP : MANUAL MODE & RUN / ST'BY PUMP : STAND BY LAMP OFF
-                else if (_model.RX_Data3[1] == 1 && _model.RX_Data1[CANDataIndices.MODE_STATUS] == 0)
-                {
-                    _model.STAND_BY_LAMP = false;
+                    // AFTER LOW PRESSURE / OVERLOAD / POWER FAIL - MAIN PUMP
+                    if (_model.Overload == false && (_model.RX_Data3[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data3[CANDataIndices.STANDBY_LAMP] == 1))
+                    {
+                        if (_model.ResetButton == true)
+                        {
+                            _model.STAND_BY_LAMP = true; // CHANGE MAIN PUMP (MAIN -> STBY)
+                            if (_model.StandBy_3_1RUN_Flag == true)
+                            {
+                                _model.StandBy_3_1RUN_Flag = false;
+                            }
+                        }
+                    }
+                    // AFTER LOW PRESSURE / OVERLOAD / POWER FAIL - ST'BY PUMP
+                    else if (_model.RUN_LAMP == true && _model.STAND_BY_LAMP == true)
+                    {
+                        if (_model.RX_Data3[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data3[CANDataIndices.RESET_BUTTON] == 1)
+                        {
+                            _model.STAND_BY_LAMP = false; // CHANGE MAIN PUMP (STBY -> MAIN)
+                            if (_model.StandBy_3_1RUN_Flag == true)
+                            {
+                                _model.StandBy_3_1RUN_Flag = false;
+                            }
+                        }
+                    }
+                    // NORMAL - MAIN PUMP : STBY MODE & RUN / ST'BY PUMP : STAND BY LAMP ON
+                    else if (_model.RX_Data3[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data3[CANDataIndices.MODE_STATUS] == 1 && _model.Overload == false && _model.RUN_LAMP == false && _model.InitFlag == false && _model.STOP_LAMP == true)
+                    {
+                        _model.STAND_BY_LAMP = true;
+                    }
+                    // NORMAL - MAIN PUMP : STBY MODE & RUN -> STOP / ST'BY PUMP : STAND BY LAMP ON -> OFF
+                    else if (_model.StandBy_3_1RUN_Flag == false && _model.RX_Data3[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data3[CANDataIndices.OVERLOAD] == 0 && _model.RX_Data3[CANDataIndices.MODE_STATUS] == 1 && _model.RUN_LAMP == false)
+                    {
+                        _model.STAND_BY_LAMP = false;
+                    }
+                    else if (_model.RX_Data3[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data3[CANDataIndices.MODE_STATUS] == 0)
+                    {
+                        _model.STAND_BY_LAMP = false;
+                    }
                 }
             }
         }
-        ////////////////////////////StandByLampProc 관련 로직////////////////////////////////////
 
         #endregion
 
+        /// <summary>
+        /// Run 요청 전송 처리 (내가 Main 펌프 일 때)
+        /// </summary>
+        private void SendRunReq()
+        {
+            if(_model == null) return;
+
+            //ModeStatus == true -> STBY_MODE
+            if (_model.ModeStatus == true && _model.ComStatus != COMStatusIndices.NoConnection)
+            {
+                // 저압 상태에서 실행 중인 경우 Run 요청 전송
+                if (_model.Lowpress && _model.RUN_LAMP == true &&
+                    _model.CountBuildUpTime_S == _model.CountBuildUpTime &&
+                    _model.RUN_req == false)
+                {
+                    _model.RUN_req = true;
+                }
+                // 과부하 상태에서 Run 요청 전송
+                else if (_model.Stop_Overload == true && _model.Overload == true &&
+                        _model.STBY_Overload == false &&
+                        _model.CountRunReq_S == _model.RunReq_S &&
+                        _model.RUN_req == false)
+                {
+                    _model.RUN_req = true;
+                }
+                // 정상 상태로 복귀 시 Run 요청 취소
+                else if (_model.Overload == false && _model.Lowpress == false && _model.RUN_LAMP == false &&
+                        (_model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 || _model.RX_Data2[CANDataIndices.RUN_LAMP] == 1 || _model.RX_Data3[CANDataIndices.RUN_LAMP] == 1) &&
+                        _model.RUN_req == true)
+                {
+                    _model.RUN_req = false;
+                }
+                // 저압 상태에서 다른 펌프가 실행 중인 경우 Run 요청 취소
+                else if (_model.Lowpress &&
+                        (_model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 || _model.RX_Data2[CANDataIndices.RUN_LAMP] == 1 || _model.RX_Data3[CANDataIndices.RUN_LAMP] == 1) &&
+                        _model.RUN_LAMP == false && _model.RUN_req == true)
+                {
+                    _model.RUN_req = false;
+                }
+                // 과부하 상태가 지속될 경우 Run 요청 취소
+                else if (_model.Overload == true && _model.CountRunReq_S > _model.RunReq_S && _model.RUN_req == true)
+                {
+                    _model.RUN_req = false;
+                }
+            }
+        }
 
         /// <summary>
-        /// Run 요청 수신 처리 (StandBy 펌프)
+        /// Run 요청 수신 처리 (내가 STBY 펌프 일 때)
         /// </summary>
         private void ReceiveRunReq()
         {
             if (_model == null) return;
 
-            if (!_model.Overload && _model.STAND_BY_LAMP)
+            if (_model.Overload == false && _model.STAND_BY_LAMP == true)
             {
-                if (!_requestFlag &&
-                    (_model.RX_Data1[CANDataIndices.RUN_REQ] == 1 || _model.RX_Data1[CANDataIndices.RUN_REQ] == 1 || _model.RX_Data1[CANDataIndices.RUN_REQ] == 1))
+                // Run 요청이 들어오면 실행
+                if (_model.Request_Flag == false &&
+                    (_model.RX_Data1[CANDataIndices.RUN_REQ] == 1 || _model.RX_Data2[CANDataIndices.RUN_REQ] == 1 || _model.RX_Data3[CANDataIndices.RUN_REQ] == 1))
                 {
                     _requestFlag = true;
                     _model.RunStatus = true;
                 }
-                else if (_model.RX_Data1[CANDataIndices.RUN_REQ] == 0 && _model.RX_Data1[CANDataIndices.RUN_REQ] == 0 && _model.RX_Data1[CANDataIndices.RUN_REQ] == 0)
+                else if (_model.RX_Data1[CANDataIndices.RUN_REQ] == 0 && _model.RX_Data2[CANDataIndices.RUN_REQ] == 0 && _model.RX_Data3[CANDataIndices.RUN_REQ] == 0)
                 {
                     _requestFlag = false;
                 }
             }
         }
 
-        /// <summary>
-        /// Run 요청 전송 처리 (메인 펌프)
-        /// </summary>
-        private void SendRunReq()
-        {
-            if (_model == null) return;
-
-            if (_model.ModeStatus && _model.ComStatus != 0) // STBY_MODE & Connected
-            {
-                // 저압 상태에서 실행 중인 경우 Run 요청 전송
-                if (_model.LOW_PRESS_LAMP && _model.RUN_LAMP &&
-                    _model.CountBuildUpTime_S == _model.CountBuildUpTime &&
-                    !_model.RUN_req)
-                {
-                    _model.RUN_req = true;
-                }
-                // 과부하 상태에서 Run 요청 전송
-                else if (_model.Stop_Overload && _model.Overload &&
-                        !_model.STBY_Overload &&
-                        _model.CountRunReq_S == 1 &&
-                        !_model.RUN_req)
-                {
-                    _model.RUN_req = true;
-                }
-                // 정상 상태로 복귀 시 Run 요청 취소
-                else if (!_model.Overload && !_model.LOW_PRESS_LAMP && !_model.RUN_LAMP &&
-                        (_model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 || _model.RX_Data2[1] == 1 || _model.RX_Data3[1] == 1) &&
-                        _model.RUN_req)
-                {
-                    _model.RUN_req = false;
-                }
-                // 저압 상태에서 다른 펌프가 실행 중인 경우 Run 요청 취소
-                else if (_model.LOW_PRESS_LAMP &&
-                        (_model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 || _model.RX_Data2[1] == 1 || _model.RX_Data3[1] == 1) &&
-                        !_model.RUN_LAMP && _model.RUN_req)
-                {
-                    _model.RUN_req = false;
-                }
-                // 과부하 상태가 지속될 경우 Run 요청 취소
-                else if (_model.Overload && _model.CountRunReq_S > 1 && _model.RUN_req)
-                {
-                    _model.RUN_req = false;
-                }
-            }
-        }
 
         /// <summary>
         /// StandBy 시작 알람 처리
@@ -1440,39 +1620,116 @@ namespace PSTARV2MonitoringApp.Services
         private void StbyStartAlarm()
         {
             if (_model == null) return;
+            // 가상 장치에서는 구현하지 않음
+        }
 
-            if (_model.RUN_LAMP && _model.STAND_BY_LAMP)
+        /// <summary>
+        /// 통신, 전원 상태에 따른 연결 상태 처리
+        /// </summary>
+        /// <param name="comStatus"></param>
+        private void ConnectProc(int comStatus)
+        {
+            if(comStatus == COMStatusIndices.NoConnection)
             {
-                _model.STBY_Start = true;
+                _model.COMM_FAULT_LAMP = true;
+                _model.ComFailLamp_Flag = false;
+
+                _model.CountStandByCheck_mS = 0;
+
+                _model.StandBy_2_Flag = false;
             }
-            else
+            //3대->2대로 바뀌는 과도 상황
+            else if(comStatus == COMStatusIndices.StandBy_3to2 || comStatus == COMStatusIndices.StandBy_3to2_1RUN)
             {
-                _model.STBY_Start = false;
+                //램프 깜박임
+                if(_model.CountComFailLamp_mS < 5)
+                {
+                    _model.COMM_FAULT_LAMP = true;
+                }
+                else if(5 <= _model.CountComFailLamp_mS && _model.CountComFailLamp_mS < 10)
+                {
+                    _model.COMM_FAULT_LAMP = false;
+                }
+                else if(_model.CountComFailLamp_mS >= 10)
+                {
+                    _model.CountComFailLamp_mS = 0;
+                }
+                _model.ComStatus_Flag = true; // 메모리 상태를 StandBy_3to2로 설정?
+
+                _model.CountStandByCheck_mS = 0;
+
+                if(_model.STOP_PB_I == false && _model.CountResetButton_S >= 2)
+                {
+                    _model.ComFailLamp_Flag = true;
+                    _model.ComStatus = COMStatusIndices.StandBy_2; // ComStatus를 StandBy_2로 강제 변경
+                }
+            }
+            else if(comStatus == COMStatusIndices.StandBy_2) //2 StandBy
+            {
+                _model.COMM_FAULT_LAMP = false;
+                _model.ComFailLamp_Flag = false;
+                _model.CountStandByCheck_mS = 0;
+            }
+            else if(comStatus == COMStatusIndices.StandBy_3) // 3 StandBy 2Run
+            {
+                _model.COMM_FAULT_LAMP = false;
+                _model.ComFailLamp_Flag = false;
+                _model.CountStandByCheck_mS = 0;
+
+                _model.StandBy_2_Flag = false;
+            }
+            else if(comStatus == COMStatusIndices.Manual) //ManualMode -> NoConnection
+            {
+                _model.COMM_FAULT_LAMP = false;
+                _model.ComFailLamp_Flag = false;
+
+                _model.CountStandByCheck_mS = 0;
+
+                _model.StandBy_2_Flag = false;
+            }
+            else if(comStatus == COMStatusIndices.StandBy_3_1RUN) // 3 StandBy 1Run
+            {
+                _model.COMM_FAULT_LAMP = false;
+                _model.ComFailLamp_Flag = false;
+
+                _model.ComStatus_Flag = true; // 메모리 상태를 StandBy_3_1RUN로 설정?
+                _model.StandBy_2_Flag = false;
+            }
+
+            //ComFailLamp_Flag가 true이면 통신이 안정적인 상황인건가?
+            //상태 확정 직후 한 주기 동안만 램프 꺼서 깜박임 방지?
+            if(_model.ComFailLamp_Flag == true)
+            {
+                _model.COMM_FAULT_LAMP = false;
             }
         }
 
+        #region ConnectFunction 정의
         ////////////////////////////ConnectFunction 관련 로직////////////////////////////////////
         /// <summary>
-        /// 연결 상태 함수 - PSTARFW.c의 ConnectFunction 구현
+        /// 연결 상태 함수
+        /// ComStatus 를 설정해준다.
+        /// ConnectionFunction -> 판정
+        /// ConnectProc -> 실행
         /// </summary>
         private void ConnectFunction()
         {
             if (_model == null) return;
 
             // 이 함수는 다른 CAN 통신 상태에 따라 현재 장치의 연결 상태를 결정
-            // 연결 상태 코드 (펌웨어와 동일)
+            // 연결 상태
             // 0: NoConnection, 1: StandBy_3to2, 2: StandBy_2, 3: StandBy_3
             // 4: Manual, 5: StandBy_3_1RUN, 6: StandBy_3to2_1RUN
 
-            switch (_deviceId)
+            switch (CAN_ID)
             {
-                case "1":
+                case 1:
                     HandleConnectDevice1();
                     break;
-                case "2":
+                case 2:
                     HandleConnectDevice2();
                     break;
-                case "3":
+                case 3:
                     HandleConnectDevice3();
                     break;
             }
@@ -1483,60 +1740,72 @@ namespace PSTARV2MonitoringApp.Services
         /// </summary>
         private void HandleConnectDevice1()
         {
-            // MANUAL 모드이면 연결 없음 (Manual)
-            if (!_model.ModeStatus)
+            // MANUAL 모드이면 NO CONNECT
+            if (_model.ModeStatus == false)
             {
-                _model.ComStatus = 4; // Manual
-                return;
+                _model.ComStatus = COMStatusIndices.Manual; // Manual
             }
 
             // 연결 없음 (NoConnection)
-            if (_model.Error_Flag2 && _model.Error_Flag3)
+            if (_model.Error_Flag2 == Com_Error && _model.Error_Flag3 == Com_Error)
             {
-                _model.ComStatus = 0; // NoConnection
-                return;
+                _model.ComStatus = COMStatusIndices.NoConnection; // NoConnection
             }
 
             // 3개 연결 (StandBy_3)
-            if (!_model.Error_Flag2 && !_model.Error_Flag3)
+            if (_model.Error_Flag2 == Com_Normal && _model.Error_Flag3 == Com_Normal)
             {
                 _model.StandBy_3_1RUN_Flag = false;
 
                 // 실행 상태에 따라 ComStatus 결정
-                if ((_model.RUN_LAMP && _model.RX_Data2[1] == 1 && _model.RX_Data3[1] == 0) ||
-                    (_model.RUN_LAMP && _model.RX_Data2[1] == 0 && _model.RX_Data3[1] == 1) ||
-                    (!_model.RUN_LAMP && _model.RX_Data2[1] == 1 && _model.RX_Data3[1] == 1))
+                // 2 RUN or 1 RUN
+                if (_model.RUN_LAMP == true && _model.RX_Data2[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data3[CANDataIndices.RUN_LAMP] == 0)
                 {
-                    _model.ComStatus = 3; // StandBy_3
+                    _model.ComStatus = COMStatusIndices.StandBy_3;
                 }
-                else if ((_model.RUN_LAMP && _model.RX_Data2[1] == 0 && _model.RX_Data3[1] == 0) ||
-                        (!_model.RUN_LAMP && _model.RX_Data2[1] == 1 && _model.RX_Data3[1] == 0) ||
-                        (!_model.RUN_LAMP && _model.RX_Data2[1] == 0 && _model.RX_Data3[1] == 1))
+                else if(_model.RUN_LAMP == true && _model.RX_Data2[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data3[CANDataIndices.RUN_LAMP] == 1)
                 {
-                    _model.ComStatus = 5; // StandBy_3_1RUN
+                    _model.ComStatus = COMStatusIndices.StandBy_3;
                 }
-                return;
-            }
+                else if(_model.RUN_LAMP == false && _model.RX_Data2[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data3[CANDataIndices.RUN_LAMP] == 1)
+                {
+                    _model.ComStatus = COMStatusIndices.StandBy_3;
+                }
+                else if(_model.RUN_LAMP == true && _model.RX_Data2[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data3[CANDataIndices.RUN_LAMP] == 0)
+                {
+                    _model.ComStatus = COMStatusIndices.StandBy_3_1RUN;
+                }
+                else if (_model.RUN_LAMP == false && _model.RX_Data2[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data3[CANDataIndices.RUN_LAMP] == 0)
+                {
+                    _model.ComStatus = COMStatusIndices.StandBy_3_1RUN;
+                }
+                else if (_model.RUN_LAMP == false && _model.RX_Data2[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data3[CANDataIndices.RUN_LAMP] == 1)
+                {
+                    _model.ComStatus = COMStatusIndices.StandBy_3_1RUN;
+                }
 
-            // 2개 연결 (StandBy_2 또는 StandBy_3to2)
-            if ((!_model.Error_Flag2 && _model.Error_Flag3) || (_model.Error_Flag2 && !_model.Error_Flag3))
-            {
-                if (_model.ComStatus == 3) // 이전이 StandBy_3이었다면
+                // 2 STAND BY
+                else if((_model.Error_Flag2 == Com_Normal && _model.Error_Flag3 == Com_Error) || (_model.Error_Flag2 == Com_Error && _model.Error_Flag3 == Com_Normal))
                 {
-                    _model.ComStatus = 1; // StandBy_3to2
-                }
-                else if (_model.ComStatus == 2) // 이미 StandBy_2 상태라면
-                {
-                    // 유지
-                }
-                else if (_model.ComStatus == 0 || _model.ComStatus == 4) // 연결 없음 또는 Manual 상태였다면
-                {
-                    _model.ComStatus = _model.ComStatus_Flag ? 1 : 2; // 메모리 상태에 따라 결정
-                }
-                else if (_model.ComStatus == 5) // StandBy_3_1RUN 상태였다면
-                {
-                    _model.ComStatus = 6; // StandBy_3to2_1RUN
-                    _model.StandBy_3_1RUN_Flag = true;
+                    if (_model.ComStatus == COMStatusIndices.StandBy_3) // 이전이 StandBy_3이었다면
+                    {
+                        _model.ComStatus = COMStatusIndices.StandBy_3to2; // StandBy_3to2
+                    }
+                    else if (_model.ComStatus == COMStatusIndices.StandBy_2) // 이미 StandBy_2 상태라면
+                    {
+                        _model.ComStatus = COMStatusIndices.StandBy_2; // 유지
+                    }
+                    else if (_model.ComStatus == COMStatusIndices.NoConnection || _model.ComStatus == COMStatusIndices.Manual) // 연결 없음 또는 Manual 상태였다면
+                    {
+                        //_model.ComStatus = _model.ComStatus_Flag ? COMStatusIndices.StandBy_3to2 : COMStatusIndices.StandBy_2; // 메모리 상태에 따라 결정
+                        if(_model.ComStatus_Flag == true) _model.ComStatus = COMStatusIndices.StandBy_3to2;
+                        else if(_model.ComStatus_Flag == false) _model.ComStatus = COMStatusIndices.StandBy_2;
+                    }
+                    else if (_model.ComStatus == COMStatusIndices.StandBy_3_1RUN) // StandBy_3_1RUN 상태였다면
+                    {
+                        _model.ComStatus = COMStatusIndices.StandBy_3to2_1RUN; // StandBy_3to2_1RUN
+                        _model.StandBy_3_1RUN_Flag = true;
+                    }
                 }
             }
         }
@@ -1546,60 +1815,72 @@ namespace PSTARV2MonitoringApp.Services
         /// </summary>
         private void HandleConnectDevice2()
         {
-            // MANUAL 모드이면 연결 없음 (Manual)
-            if (!_model.ModeStatus)
+            // MANUAL 모드이면 NO CONNECT
+            if (_model.ModeStatus == false)
             {
-                _model.ComStatus = 4; // Manual
-                return;
+                _model.ComStatus = COMStatusIndices.Manual; // Manual
             }
 
             // 연결 없음 (NoConnection)
-            if (_model.Error_Flag1 && _model.Error_Flag3)
+            if (_model.Error_Flag1 == Com_Error && _model.Error_Flag3 == Com_Error)
             {
-                _model.ComStatus = 0; // NoConnection
-                return;
+                _model.ComStatus = COMStatusIndices.NoConnection; // NoConnection
             }
 
             // 3개 연결 (StandBy_3)
-            if (!_model.Error_Flag1 && !_model.Error_Flag3)
+            if (_model.Error_Flag1 == Com_Normal && _model.Error_Flag3 == Com_Normal)
             {
                 _model.StandBy_3_1RUN_Flag = false;
 
                 // 실행 상태에 따라 ComStatus 결정
-                if ((_model.RUN_LAMP && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data3[1] == 0) ||
-                    (_model.RUN_LAMP && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data3[1] == 1) ||
-                    (!_model.RUN_LAMP && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data3[1] == 1))
+                // 2 RUN or 1 RUN
+                if (_model.RUN_LAMP == true && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data3[CANDataIndices.RUN_LAMP] == 0)
                 {
-                    _model.ComStatus = 3; // StandBy_3
+                    _model.ComStatus = COMStatusIndices.StandBy_3;
                 }
-                else if ((_model.RUN_LAMP && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data3[1] == 0) ||
-                        (!_model.RUN_LAMP && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data3[1] == 0) ||
-                        (!_model.RUN_LAMP && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data3[1] == 1))
+                else if (_model.RUN_LAMP == true && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data3[CANDataIndices.RUN_LAMP] == 1)
                 {
-                    _model.ComStatus = 5; // StandBy_3_1RUN
+                    _model.ComStatus = COMStatusIndices.StandBy_3;
                 }
-                return;
-            }
+                else if (_model.RUN_LAMP == false && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data3[CANDataIndices.RUN_LAMP] == 1)
+                {
+                    _model.ComStatus = COMStatusIndices.StandBy_3;
+                }
+                else if (_model.RUN_LAMP == true && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data3[CANDataIndices.RUN_LAMP] == 0)
+                {
+                    _model.ComStatus = COMStatusIndices.StandBy_3_1RUN;
+                }
+                else if (_model.RUN_LAMP == false && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data3[CANDataIndices.RUN_LAMP] == 0)
+                {
+                    _model.ComStatus = COMStatusIndices.StandBy_3_1RUN;
+                }
+                else if (_model.RUN_LAMP == false && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data3[CANDataIndices.RUN_LAMP] == 1)
+                {
+                    _model.ComStatus = COMStatusIndices.StandBy_3_1RUN;
+                }
 
-            // 2개 연결 (StandBy_2 또는 StandBy_3to2)
-            if ((!_model.Error_Flag1 && _model.Error_Flag3) || (_model.Error_Flag1 && !_model.Error_Flag3))
-            {
-                if (_model.ComStatus == 3) // 이전이 StandBy_3이었다면
+                // 2 STAND BY
+                else if ((_model.Error_Flag1 == Com_Normal && _model.Error_Flag3 == Com_Error) || (_model.Error_Flag1 == Com_Error && _model.Error_Flag3 == Com_Normal))
                 {
-                    _model.ComStatus = 1; // StandBy_3to2
-                }
-                else if (_model.ComStatus == 2) // 이미 StandBy_2 상태라면
-                {
-                    // 유지
-                }
-                else if (_model.ComStatus == 0 || _model.ComStatus == 4) // 연결 없음 또는 Manual 상태였다면
-                {
-                    _model.ComStatus = _model.ComStatus_Flag ? 1 : 2; // 메모리 상태에 따라 결정
-                }
-                else if (_model.ComStatus == 5) // StandBy_3_1RUN 상태였다면
-                {
-                    _model.ComStatus = 6; // StandBy_3to2_1RUN
-                    _model.StandBy_3_1RUN_Flag = true;
+                    if (_model.ComStatus == COMStatusIndices.StandBy_3) // 이전이 StandBy_3이었다면
+                    {
+                        _model.ComStatus = COMStatusIndices.StandBy_3to2; // StandBy_3to2
+                    }
+                    else if (_model.ComStatus == COMStatusIndices.StandBy_2) // 이미 StandBy_2 상태라면
+                    {
+                        _model.ComStatus = COMStatusIndices.StandBy_2; // 유지
+                    }
+                    else if (_model.ComStatus == COMStatusIndices.NoConnection || _model.ComStatus == COMStatusIndices.Manual) // 연결 없음 또는 Manual 상태였다면
+                    {
+                        //_model.ComStatus = _model.ComStatus_Flag ? COMStatusIndices.StandBy_3to2 : COMStatusIndices.StandBy_2; // 메모리 상태에 따라 결정
+                        if (_model.ComStatus_Flag == true) _model.ComStatus = COMStatusIndices.StandBy_3to2;
+                        else if (_model.ComStatus_Flag == false) _model.ComStatus = COMStatusIndices.StandBy_2;
+                    }
+                    else if (_model.ComStatus == COMStatusIndices.StandBy_3_1RUN) // StandBy_3_1RUN 상태였다면
+                    {
+                        _model.ComStatus = COMStatusIndices.StandBy_3to2_1RUN; // StandBy_3to2_1RUN
+                        _model.StandBy_3_1RUN_Flag = true;
+                    }
                 }
             }
         }
@@ -1609,71 +1890,80 @@ namespace PSTARV2MonitoringApp.Services
         /// </summary>
         private void HandleConnectDevice3()
         {
-            // MANUAL 모드이면 연결 없음 (Manual)
-            if (!_model.ModeStatus)
+            // MANUAL 모드이면 NO CONNECT
+            if (_model.ModeStatus == false)
             {
-                _model.ComStatus = 4; // Manual
-                return;
+                _model.ComStatus = COMStatusIndices.Manual; // Manual
             }
 
             // 연결 없음 (NoConnection)
-            if (_model.Error_Flag1 && _model.Error_Flag2)
+            if (_model.Error_Flag2 == Com_Error && _model.Error_Flag1 == Com_Error)
             {
-                _model.ComStatus = 0; // NoConnection
-                return;
+                _model.ComStatus = COMStatusIndices.NoConnection; // NoConnection
             }
 
             // 3개 연결 (StandBy_3)
-            if (!_model.Error_Flag1 && !_model.Error_Flag2)
+            if (_model.Error_Flag2 == Com_Normal && _model.Error_Flag1 == Com_Normal)
             {
                 _model.StandBy_3_1RUN_Flag = false;
 
                 // 실행 상태에 따라 ComStatus 결정
-                if ((_model.RUN_LAMP && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data2[1] == 0) ||
-                    (_model.RUN_LAMP && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data2[1] == 1) ||
-                    (!_model.RUN_LAMP && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data2[1] == 1))
+                // 2 RUN or 1 RUN
+                if (_model.RUN_LAMP == true && _model.RX_Data2[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 0)
                 {
-                    _model.ComStatus = 3; // StandBy_3
+                    _model.ComStatus = COMStatusIndices.StandBy_3;
                 }
-                else if ((_model.RUN_LAMP && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data2[1] == 0) ||
-                        (!_model.RUN_LAMP && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data2[1] == 0) ||
-                        (!_model.RUN_LAMP && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data2[1] == 1))
+                else if (_model.RUN_LAMP == true && _model.RX_Data2[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 1)
                 {
-                    _model.ComStatus = 5; // StandBy_3_1RUN
+                    _model.ComStatus = COMStatusIndices.StandBy_3;
                 }
-                return;
-            }
+                else if (_model.RUN_LAMP == false && _model.RX_Data2[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 1)
+                {
+                    _model.ComStatus = COMStatusIndices.StandBy_3;
+                }
+                else if (_model.RUN_LAMP == true && _model.RX_Data2[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 0)
+                {
+                    _model.ComStatus = COMStatusIndices.StandBy_3_1RUN;
+                }
+                else if (_model.RUN_LAMP == false && _model.RX_Data2[CANDataIndices.RUN_LAMP] == 1 && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 0)
+                {
+                    _model.ComStatus = COMStatusIndices.StandBy_3_1RUN;
+                }
+                else if (_model.RUN_LAMP == false && _model.RX_Data2[CANDataIndices.RUN_LAMP] == 0 && _model.RX_Data1[CANDataIndices.RUN_LAMP] == 1)
+                {
+                    _model.ComStatus = COMStatusIndices.StandBy_3_1RUN;
+                }
 
-            // 2개 연결 (StandBy_2 또는 StandBy_3to2)
-            if ((!_model.Error_Flag1 && _model.Error_Flag2) || (_model.Error_Flag1 && !_model.Error_Flag2))
-            {
-                if (_model.ComStatus == 3) // 이전이 StandBy_3이었다면
+                // 2 STAND BY
+                else if ((_model.Error_Flag2 == Com_Normal && _model.Error_Flag1 == Com_Error) || (_model.Error_Flag2 == Com_Error && _model.Error_Flag1 == Com_Normal))
                 {
-                    _model.ComStatus = 1; // StandBy_3to2
-                }
-                else if (_model.ComStatus == 2) // 이미 StandBy_2 상태라면
-                {
-                    // 유지
-                }
-                else if (_model.ComStatus == 0 || _model.ComStatus == 4) // 연결 없음 또는 Manual 상태였다면
-                {
-                    _model.ComStatus = _model.ComStatus_Flag ? 1 : 2; // 메모리 상태에 따라 결정
-                }
-                else if (_model.ComStatus == 5) // StandBy_3_1RUN 상태였다면
-                {
-                    _model.ComStatus = 6; // StandBy_3to2_1RUN
-                    _model.StandBy_3_1RUN_Flag = true;
+                    if (_model.ComStatus == COMStatusIndices.StandBy_3) // 이전이 StandBy_3이었다면
+                    {
+                        _model.ComStatus = COMStatusIndices.StandBy_3to2; // StandBy_3to2
+                    }
+                    else if (_model.ComStatus == COMStatusIndices.StandBy_2) // 이미 StandBy_2 상태라면
+                    {
+                        _model.ComStatus = COMStatusIndices.StandBy_2; // 유지
+                    }
+                    else if (_model.ComStatus == COMStatusIndices.NoConnection || _model.ComStatus == COMStatusIndices.Manual) // 연결 없음 또는 Manual 상태였다면
+                    {
+                        //_model.ComStatus = _model.ComStatus_Flag ? COMStatusIndices.StandBy_3to2 : COMStatusIndices.StandBy_2; // 메모리 상태에 따라 결정
+                        if (_model.ComStatus_Flag == true) _model.ComStatus = COMStatusIndices.StandBy_3to2;
+                        else if (_model.ComStatus_Flag == false) _model.ComStatus = COMStatusIndices.StandBy_2;
+                    }
+                    else if (_model.ComStatus == COMStatusIndices.StandBy_3_1RUN) // StandBy_3_1RUN 상태였다면
+                    {
+                        _model.ComStatus = COMStatusIndices.StandBy_3to2_1RUN; // StandBy_3to2_1RUN
+                        _model.StandBy_3_1RUN_Flag = true;
+                    }
                 }
             }
         }
-        ////////////////////////////ConnectFunction 관련 로직////////////////////////////////////
-
+        #endregion
 
         #endregion
 
         #region 외부 인터페이스 메서드
-        
-
         /// <summary>
         /// 과부하 상태 설정
         /// </summary>

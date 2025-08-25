@@ -21,7 +21,7 @@ namespace PSTARV2MonitoringApp.Services
         private object _canInterface; // 실제 CAN 인터페이스 객체
 
         // CAN 데이터 수신 이벤트
-        public event EventHandler<CANDataReceivedEventArgs> DataReceived;
+        public event EventHandler<CANDataReceivedEventArgs> CANDataReceived;
         public event EventHandler<string> ConnectionStatusChanged;
         public event EventHandler<string> ErrorOccurred;
         // 모든 CAN 데이터 이벤트 (로컬 송신 데이터 포함)
@@ -253,7 +253,7 @@ namespace PSTARV2MonitoringApp.Services
                     {
                         //Console.WriteLine($"수신된 CAN 프레임: ID=0x{canFrame.Id:X3}, Data={BitConverter.ToString(canFrame.Data).Replace("-", " ")}");
                         // 수신된 데이터를 이벤트로 전달
-                        DataReceived?.Invoke(this, new CANDataReceivedEventArgs(canFrame));
+                        CANDataReceived?.Invoke(this, new CANDataReceivedEventArgs(canFrame));
                     }
                 }
                 catch (OperationCanceledException)
@@ -359,7 +359,7 @@ namespace PSTARV2MonitoringApp.Services
                     {
                         frame = _transmittedFrames.Dequeue();
                         Console.WriteLine($"{DateTime.Now} 테스트 프레임 수신(즉시 처리): ID=0x{frame.Id:X3}, Data={frame.DataAsHex}");
-                        return frame;
+                        return frame; //왜 return?
                     }
                 }
 
@@ -388,6 +388,7 @@ namespace PSTARV2MonitoringApp.Services
                         {
                             frame = _transmittedFrames.Dequeue();
                             Console.WriteLine($"{DateTime.Now} 테스트 프레임 수신(재확인):    ID=0x{frame.Id:X3}, Data={frame.DataAsHex}");
+                            return frame;
                         }
                     }
                 }

@@ -13,15 +13,15 @@ namespace PSTARV2MonitoringApp.ViewModels.Windows
         {
             new NavigationViewItem()
             {
-                Content = "Home",
+                Content = "Dashboard",
                 Icon = new SymbolIcon { Symbol = SymbolRegular.Home24 },
-                TargetPageType = typeof(Views.Pages.DashboardPage)
+                TargetPageType = typeof(Views.Pages.DashboardPage2)
             },
             new NavigationViewItem()
             {
-                Content = "Home2",
+                Content = "Dashboard2",
                 Icon = new SymbolIcon { Symbol = SymbolRegular.Home24 },
-                TargetPageType = typeof(Views.Pages.DashboardPage2)
+                TargetPageType = typeof(Views.Pages.DashboardPage)
             },
             new NavigationViewItem()
             {

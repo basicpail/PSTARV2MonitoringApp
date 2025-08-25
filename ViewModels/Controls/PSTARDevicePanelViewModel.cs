@@ -64,7 +64,7 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             }
 
             // CAN 통신 이벤트 구독
-            _canService.DataReceived += OnCANDataReceived;
+            _canService.CANDataReceived += OnCANDataReceived;
             _canService.ConnectionStatusChanged += OnConnectionStatusChanged;
         }
 
@@ -132,6 +132,7 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
         {
             if (_deviceService != null)
             {
+                Console.WriteLine("Call OnCANDataReceived!");
                 _deviceService.ProcessReceivedCANFrame(e.Frame);
             }
         }
@@ -594,7 +595,7 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
             // CAN 전송 중지
             StopCANTransmission();
 
-            // 이벤트 구독 해제
+            // Device 이벤트 구독 해제
             if (_deviceService != null)
             {
                 _deviceService.CANDataTransmitted -= OnPumpCANDataTransmitted;
@@ -602,8 +603,17 @@ namespace PSTARV2MonitoringApp.ViewModels.Controls
                 _deviceService.Dispose();
             }
 
-            _canService.DataReceived -= OnCANDataReceived;
-            _canService.ConnectionStatusChanged -= OnConnectionStatusChanged;
+            // CAN 서비스 이벤트 구독 해제
+            if (_canService != null)
+            {
+                _canService.CANDataReceived -= OnCANDataReceived;
+                _canService.ConnectionStatusChanged -= OnConnectionStatusChanged;
+
+                // 특정 장치 ID에 대한 메시지 구독 해제 (만약 CANCommunicationService에 해당 메서드가 있다면)
+                //_canService.UnsubscribeFromCANMessages(DeviceId);
+            }
+            // DeviceModel 참조 해제
+            DeviceModel = null;
         }
         #endregion
 

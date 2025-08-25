@@ -30,7 +30,7 @@ namespace PSTARV2MonitoringApp.Models
 
         #endregion
 
-        #region 필드 - PSTAR 상태 변수 (FW와 동일)
+        #region 필드 - PSTAR 상태 변수
         // PSTAR 동작 상태 변수
         private bool _runStatus;
         private bool _heatStatus;
@@ -62,15 +62,19 @@ namespace PSTARV2MonitoringApp.Models
         private bool _lowpress_I;
 
         // 플래그 변수
+        private bool _initFlag;
         private bool _request_Flag;
         private bool _stby_Overload;
         private bool _stop_Overload;
+        private bool _countOverload_Flag;
         private bool _lowpress;
         private bool _error_Flag1;
         private bool _error_Flag2;
         private bool _error_Flag3;
-        private bool _initFlag;
         private bool _comStatus_Flag;
+        private bool _comFailLamp_Flag;
+        private bool _standBy_3_1RUN_Flag;
+        private bool _standBy_2_Flag;
 
         // 타이머 변수
         private int _countBuildUpTime_S;
@@ -79,17 +83,21 @@ namespace PSTARV2MonitoringApp.Models
         private bool _countParaStart;
         private int _buildUpTime;
         private int _parallelTime;
-        private int _countSeqTime_S;
+        private int _countSeqTime_mS;
         private int _countBuildUpTime;
         private int _countHeatingOnTime_S;
         private int _heatingOnTime;
         private int _countRunReq_S;
+        private int _runReq_S;
         private int _comFault_S;
         private int _countComFault1_S;
         private int _countComFault2_S;
         private int _countComFault3_S;
+        private int _countComFailLamp_mS;
+        private int _countResetButton_S;
         private int _comInit_S;
         private int _countStandByCheck_mS;
+        private int _countStandBy_2_mS;
         private int _countComInit;
         private int _countOverload_S;
 
@@ -104,17 +112,14 @@ namespace PSTARV2MonitoringApp.Models
         private byte[] _rx_data2 = new byte[8];
         private byte[] _rx_data3 = new byte[8];
 
-        // 추가된 상태 변수 (PSTARFW.c 기반)
+        // 이전 상태 저장 변수
         private bool _oldLowpress;
         private bool _oldRunStatus;
         private bool _oldStartPB;
         private bool _oldStopPB;
         private bool _oldHeatPB;
         private bool _oldModePB;
-        private bool _standBy_3_1RUN_Flag;
-        private bool _countOverload_Flag;
-
-
+        
         // UI 표시용 문자열 속성
         private string _stby_Start_String = "OFF";
         #endregion
@@ -382,11 +387,16 @@ namespace PSTARV2MonitoringApp.Models
             get => _initFlag;
             set { SetProperty(ref _initFlag, value); }
         }
-
+        
         public bool ComStatus_Flag
         {
             get => _comStatus_Flag;
             set { SetProperty(ref _comStatus_Flag, value); }
+        }
+        public bool ComFailLamp_Flag
+        {
+            get => _comFailLamp_Flag;
+            set { SetProperty(ref _comFailLamp_Flag, value); }
         }
 
         // 타이머 변수
@@ -426,10 +436,10 @@ namespace PSTARV2MonitoringApp.Models
             set { SetProperty(ref _parallelTime, value); }
         }
 
-        public int CountSeqTime_S
+        public int CountSeqTime_mS
         {
-            get => _countSeqTime_S;
-            set { SetProperty(ref _countSeqTime_S, value); }
+            get => _countSeqTime_mS;
+            set { SetProperty(ref _countSeqTime_mS, value); }
         }
 
         // 연결 상태
@@ -510,11 +520,16 @@ namespace PSTARV2MonitoringApp.Models
             get => _heatingOnTime;
             set { SetProperty(ref _heatingOnTime, value); }
         }
-
+        
         public int CountRunReq_S
         {
             get => _countRunReq_S;
             set { SetProperty(ref _countRunReq_S, value); }
+        }
+        public int RunReq_S
+        {
+            get => _runReq_S;
+            set { SetProperty(ref _runReq_S, value); }
         }
         public int ComFault_S
         {
@@ -539,7 +554,18 @@ namespace PSTARV2MonitoringApp.Models
             get => _countComFault3_S;
             set { SetProperty(ref _countComFault3_S, value); }
         }
-
+        
+        public int CountComFailLamp_mS
+        {
+            get => _countComFailLamp_mS;
+            set { SetProperty(ref _countComFailLamp_mS, value); }
+        }
+        
+        public int CountResetButton_S
+        {
+            get => _countResetButton_S;
+            set { SetProperty(ref _countResetButton_S, value); }
+        }
         public int CountComInit
         {
             get => _countComInit; 
@@ -556,21 +582,33 @@ namespace PSTARV2MonitoringApp.Models
             set { SetProperty(ref _comInit_S, value); }
             
         }
+        
         public int CountStandByCheck_mS
         {
             get => _countStandByCheck_mS;
             set { SetProperty(ref _countStandByCheck_mS, value); }
+        }
+        public int CountStandBy_2_mS
+        {
+            get => _countStandBy_2_mS;
+            set { SetProperty(ref _countStandBy_2_mS, value); }
         }
         public int CANTransmitInterval
         {
             get => _canTransmitInterval;
             set { SetProperty(ref _canTransmitInterval, value); }
         }
-
+        
         public bool StandBy_3_1RUN_Flag
         {
             get => _standBy_3_1RUN_Flag;
             set { SetProperty(ref _standBy_3_1RUN_Flag, value); }
+        }
+
+        public bool StandBy_2_Flag
+        {
+            get => _standBy_2_Flag;
+            set { SetProperty(ref _standBy_2_Flag, value); }
         }
 
         public bool CountOverload_Flag
@@ -668,26 +706,34 @@ namespace PSTARV2MonitoringApp.Models
             InitFlag = false;
             ComStatus_Flag = false;
             CountOverload_Flag = false;
+            ComFailLamp_Flag = false;
+            StandBy_3_1RUN_Flag = false;
+            StandBy_2_Flag = false;
 
             // 타이머 변수 초기화
+            //TMR0 는 100ms 주기이다.
             CountBuildUpTime_S = 0;
             CountParallelTime_S = 0;
             CountBuildUpStart = false;
             CountParaStart = false;
             BuildUpTime = 5;
             ParallelTime = 10;
-            CountSeqTime_S = 0;
+            CountSeqTime_mS = 0;
             CountBuildUpTime = 0;
             CountHeatingOnTime_S = 0;
             HeatingOnTime = 3;
-            CountRunReq_S = 1; //// Overload Run Req Count : 1sec
+            CountRunReq_S = 0;
+            RunReq_S = 1; // Overload Run Req Count : 1sec
             ComFault_S = 1; // Com Fault(Power Fail) Count : 1sec
             CountComFault1_S = 0;
             CountComFault2_S = 0;
             CountComFault3_S = 0;
+            CountComFailLamp_mS = 0;
+            CountResetButton_S = 0;
             CountComInit = 0; // First StandBy Status Control : 0s
             ComInit_S = 0;
             CountStandByCheck_mS = 0;
+            CountStandBy_2_mS = 0;
             CountOverload_S = 0;
             CANTransmitInterval = 300; // CAN 전송 주기 : 300ms
 
@@ -698,7 +744,6 @@ namespace PSTARV2MonitoringApp.Models
             STBY_Start_String = "OFF";
             OldLowpress = false;
             OldRunStatus = false;
-            StandBy_3_1RUN_Flag = false;
         }
         #endregion
 

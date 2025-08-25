@@ -14,7 +14,7 @@ namespace PSTARV2MonitoringApp.Views.Dialogs
             txtComStatus.Text = deviceModel.COMM_FAULT_LAMP ? "Disconnected" : "Connected";
 
             // 현재 시퀀스 타임 설정 (실제 값을 추가적으로 계산하거나 가져올 수 있습니다)
-            txtCurrentSequenceTime.Text = deviceModel.CountSeqTime_S.ToString();
+            txtCurrentSequenceTime.Text = deviceModel.CountSeqTime_mS.ToString();
         }
     }
 }
