@@ -1,5 +1,8 @@
-﻿using System;
+﻿using PSTARV2MonitoringApp.Models;
+using PSTARV2MonitoringApp.Services;
+using System;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows.Data;
@@ -8,54 +11,50 @@ using static Peak.Can.Basic.ParameterValue;
 
 namespace PSTARV2MonitoringApp.Views.Pages
 {
-    // ======= Models =======
-    public class RawDataRow
+    public class RawData
     {
         public string Timestamp { get; set; } = "";
         public string CanId { get; set; } = "";
-        public object STBY_Start { get; set; } = false;   // bool 또는 "ON"/"OFF" 모두 수용
-        public object RunLamp { get; set; } = false;
-        public object Overload { get; set; } = false;
-        public string ModeStatus { get; set; } = "OFF";
-        public object RUN_req { get; set; } = false;
-        public object ResetButton { get; set; } = false;
-        public object StandByLamp { get; set; } = false;
-        public object TXLowpress { get; set; } = false;
+        public int STBY_Start { get; set; }
+        public int RunLamp { get; set; }
+        public int Overload { get; set; }
+        public int ModeStatus { get; set; }
+        public int RUN_req { get; set; }
+        public int ResetButton { get; set; }
+        public int StandByLamp { get; set; }
+        public int TXLowpress { get; set; }
     }
 
-    public class LogRow
+    public class DeviceStatusCardModel : INotifyPropertyChanged
     {
-        public string Timestamp { get; set; } = "";
-        public string DeviceId { get; set; } = "";
-        public string Message { get; set; } = "";
-    }
+        private string _title = "";
+        public string Title { get => _title; set { _title = value; OnPropertyChanged(nameof(Title)); } }
 
-    public class DeviceCardModel : INotifyPropertyChanged
-    {
-        public string Title { get; set; } = "ID";
-        private string _commStatus = "Disconnected";
+        private string _commStatus = "";
         public string CommStatus { get => _commStatus; set { _commStatus = value; OnPropertyChanged(nameof(CommStatus)); } }
+        
+        private string _standbyLamp = "";
+        public string StandbyLamp { get => _standbyLamp; set { _standbyLamp = value; OnPropertyChanged(nameof(StandbyLamp)); } }
 
-        private string _runStatus = "Stopped";
+        private string _runStatus = "";
         public string RunStatus { get => _runStatus; set { _runStatus = value; OnPropertyChanged(nameof(RunStatus)); } }
 
-        private string _mode = "Manual";
+        private string _mode = "";
         public string Mode { get => _mode; set { _mode = value; OnPropertyChanged(nameof(Mode)); } }
 
-        private int _rxRate;
-        public int RxRate { get => _rxRate; set { _rxRate = value; OnPropertyChanged(nameof(RxRate)); } }
+        private string _standbyStart = "";
+        public string StandbyStart { get => _standbyStart; set { _standbyStart = value; OnPropertyChanged(nameof(StandbyStart)); } }
 
-        private int _txRate;
-        public int TxRate { get => _txRate; set { _txRate = value; OnPropertyChanged(nameof(TxRate)); } }
+        private string _overload = "";
+        public string Overload { get => _overload; set { _overload = value; OnPropertyChanged(nameof(Overload)); } }
+
+        private string _lowpress = "";
+        public string Lowpress { get => _lowpress; set { _lowpress = value; OnPropertyChanged(nameof(Lowpress)); } }
 
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 
-    public class DeviceStatusCardsVM
-    {
-        public ObservableCollection<DeviceCardModel> DeviceStatusCardModels { get; } = new();
-    }
 
     // ======= Page ViewModel =======
     public class Dashboard2ViewModel : INotifyPropertyChanged
@@ -64,142 +63,135 @@ namespace PSTARV2MonitoringApp.Views.Pages
         private const int LOG_CAPACITY = 99;   // 종합 상황(로그) 상한
 
 
-        public ObservableCollection<RawDataRow> RawDataItems { get; } = new();
-        public ObservableCollection<LogRow> LogItems { get; } = new();
+        public ObservableCollection<RawData> RawDataItems { get; } = new();
+        public ObservableCollection<DeviceStatusCardModel> DeviceStatusCardModels { get; } = new();
 
-        public ObservableCollection<string> AvailableCanIds { get; } =
-            new(new[] { "모든 ID", "0x100", "0x200", "0x300" });
+        //----------------------------------------------------------------------------------------//
+        private readonly DeviceLogService _logService;
+        private readonly CANCommunicationService _canService;
 
-        private string _selectedCanIdFilter = "모든 ID";
-        public string SelectedCanIdFilter
-        {
-            get => _selectedCanIdFilter;
-            set { _selectedCanIdFilter = value; OnPropertyChanged(nameof(SelectedCanIdFilter)); }
-        }
+        // _filteredDeviceLogs를 public 속성으로 변경
+        private ObservableCollection<DeviceLogEntry> _filteredDeviceLogs;
+        public ObservableCollection<DeviceLogEntry> FilteredDeviceLogs => _filteredDeviceLogs;
+        public ObservableCollection<DeviceLogEntry> DeviceLogs => _logService.LogEntries;
 
-        private bool _showAllCanMessages = true;
-        public bool ShowAllCanMessages
-        {
-            get => _showAllCanMessages;
-            set { _showAllCanMessages = value; OnPropertyChanged(nameof(ShowAllCanMessages)); }
-        }
+        //----------------------------------------------------------------------------------------//
 
-        public DeviceStatusCardsVM DeviceStatusCardViewModel { get; } = new();
-
-        private readonly DispatcherTimer _timer;
-        private readonly Random _rand = new();
-
-        public Dashboard2ViewModel()
-        {
-            // 초기 Device 카드 3개
-            DeviceStatusCardViewModel.DeviceStatusCardModels.Add(new DeviceCardModel { Title = "ID1", CommStatus = "Connected", RunStatus = "Running", Mode = "Auto", RxRate = 58, TxRate = 52 });
-            DeviceStatusCardViewModel.DeviceStatusCardModels.Add(new DeviceCardModel { Title = "ID2", CommStatus = "Disconnected", RunStatus = "Stopped", Mode = "Manual", RxRate = 0, TxRate = 0 });
-            DeviceStatusCardViewModel.DeviceStatusCardModels.Add(new DeviceCardModel { Title = "ID3", CommStatus = "Disconnected", RunStatus = "Stopped", Mode = "Manual", RxRate = 0, TxRate = 0 });
-
-            // 초기 로그/RawData 몇 줄
-            for (int i = 0; i < 18; i++)
-            {
-                AddRandomRawRow();
-            }
-            for (int i = 0; i < 8; i++)
-            {
-                LogItems.Add(new LogRow
-                {
-                    Timestamp = Now(),
-                    DeviceId = $"ID {_rand.Next(1, 4)}",
-                    Message = _rand.Next(3) switch
-                    {
-                        0 => "CAN 데이터 수신: Connected, Running",
-                        1 => "저압 상태 감지",
-                        _ => "알 수 없는 CAN ID"
-                    }
-                });
-            }
-
-            // 타이머로 지속 갱신
-            _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
-            _timer.Tick += (s, e) =>
-            {
-                // RawData 한 줄 추가
-                AddRandomRawRow();
-
-                // 로그 가끔 추가
-                if (_rand.NextDouble() < 0.35)
-                {
-                    LogRow log = new LogRow
-                    {
-                        Timestamp = Now(),
-                        DeviceId = $"ID {_rand.Next(1, 4)}",
-                        Message = _rand.Next(4) switch
-                        {
-                            0 => "CAN 데이터 수신: Connected, Running",
-                            1 => "상태 변경: Manual → Auto",
-                            2 => "저압 상태 감지",
-                            _ => "CAN ID: 0x300"
-                        }
-                    };
-
-                    AddNewestFirst(LogItems, log, LOG_CAPACITY);
-
-                    if (LogItems.Count > LOG_CAPACITY) LogItems.RemoveAt(LogItems.Count - 1);
-                }
-
-                // Device 카드 Rx/Tx 변화, 연결 상태 랜덤 토글
-                foreach (var d in DeviceStatusCardViewModel.DeviceStatusCardModels)
-                {
-                    d.RxRate = Math.Max(0, d.RxRate + _rand.Next(-5, 6));
-                    d.TxRate = Math.Max(0, d.TxRate + _rand.Next(-5, 6));
-
-                    if (_rand.NextDouble() < 0.08)
-                    {
-                        bool connected = d.CommStatus == "Connected";
-                        d.CommStatus = connected ? "Disconnected" : "Connected";
-                        d.RunStatus = connected ? "Stopped" : "Running";
-                        d.Mode = connected ? "Manual" : "Auto";
-                    }
-                }
-
-                // RawData 사이즈 유지 (성능/시야)
-                while (RawDataItems.Count > RAW_CAPACITY) RawDataItems.RemoveAt(0);
-            };
-            _timer.Start();
-        }
-
-        private void AddRandomRawRow()
-        {
-            string[] ids = { "0x100", "0x200", "0x300" };
-            string canId = ids[_rand.Next(ids.Length)];
-            bool onOff() => _rand.NextDouble() < 0.25;
-
-            var row = new RawDataRow
-            {
-                Timestamp = NowWithMs(),
-                CanId = canId,
-                STBY_Start = onOff(),
-                RunLamp = onOff(),
-                Overload = _rand.NextDouble() < 0.07,
-                ModeStatus = _rand.Next(3) switch { 0 => "OFF", 1 => "AUTO", _ => "MAN" },
-                RUN_req = onOff(),
-                ResetButton = onOff(),
-                StandByLamp = onOff(),
-                TXLowpress = _rand.NextDouble() < 0.05
-            };
-
-            AddNewestFirst(RawDataItems, row, RAW_CAPACITY);
-        }
-
-        private static void AddNewestFirst<T>(ObservableCollection<T> list, T item, int capacity)
-        {
-            list.Insert(0, item);                  // ✅ 항상 맨 위에 추가
-            if (list.Count > capacity)             // ✅ 오래된 건 '맨 아래'에서 제거
-                list.RemoveAt(list.Count - 1);
-        }
-
-
-        private static string Now() => DateTime.Now.ToString("HH:mm:ss");
         private static string NowWithMs() => DateTime.Now.ToString("HH:mm:ss.ff");
 
         public event PropertyChangedEventHandler PropertyChanged;
         private void OnPropertyChanged(string n) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
+        //----------------------------------------------------------------------------------------//
+
+        public Dashboard2ViewModel()
+        {
+            _logService = DeviceLogService.Instance;
+            _canService = CANCommunicationService.Instance;
+
+            _filteredDeviceLogs = new ObservableCollection<DeviceLogEntry>();
+            // DeviceLogService의 로그 변경 이벤트 구독
+            _logService.LogEntries.CollectionChanged += LogEntries_CollectionChanged;
+
+            // CAN 통신 이벤트 구독
+            _canService.CANDataReceived += OnCANDataReceived;
+            //_canService.ConnectionStatusChanged += OnConnectionStatusChanged;
+
+            // 초기 Device 카드 3개
+            DeviceStatusCardModels.Add(new DeviceStatusCardModel {Title="ID 1"});
+            DeviceStatusCardModels.Add(new DeviceStatusCardModel {Title = "ID 2" });
+            DeviceStatusCardModels.Add(new DeviceStatusCardModel {Title = "ID 3" });
+        }
+
+        private void LogEntries_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            // 로그 변경 시 _filteredDeviceLogs 업데이트
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                if (e.NewItems != null)
+                {
+                    foreach (DeviceLogEntry entry in e.NewItems)
+                    {
+                        Console.WriteLine($"New Log: {entry.Date} - {entry.Id} - {entry.Contents}");
+                        _filteredDeviceLogs.Insert(0, entry); // 새 로그를 목록 맨 위에 추가
+                    }
+                }
+
+                // 로그 최대 개수 제한
+                while (_filteredDeviceLogs.Count > LOG_CAPACITY)
+                {
+                    _filteredDeviceLogs.RemoveAt(_filteredDeviceLogs.Count - 1);
+                }
+
+                // 필터링된 로그 변경 알림
+                OnPropertyChanged(nameof(FilteredDeviceLogs));
+            });
+        }
+
+
+        private void OnCANDataReceived(object sender, CANDataReceivedEventArgs e)
+        {
+            var id = $"0x{e.Frame.Id:X3}";
+            var data = e.Frame.Data;
+
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                var rawData = new RawData
+                {
+                    Timestamp = NowWithMs(),
+                    CanId = id,
+                    STBY_Start = data[0],
+                    RunLamp = data[1],
+                    Overload = data[2],
+                    ModeStatus = data[3],
+                    RUN_req = data[4],
+                    ResetButton = data[5],
+                    StandByLamp = data[6],
+                    TXLowpress = data[7]
+                };
+
+                //맨 앞에 추가
+                RawDataItems.Insert(0, rawData);
+
+                //최대 수 제한
+                if (RawDataItems.Count > RAW_CAPACITY)
+                {
+                    RawDataItems.RemoveAt(RawDataItems.Count - 1);
+                }
+
+                if(id == "0x100") // Device 1
+                {
+                    //DeviceStatusCardModels[0].Title = "ID 1";
+                    DeviceStatusCardModels[0].CommStatus =  "Connected";
+                    DeviceStatusCardModels[0].StandbyStart = (data[0] == 1) ? "STBY Start" : "STBY Stop";
+                    DeviceStatusCardModels[0].RunStatus = (data[1] == 1) ? "RUN" : "STOP";
+                    DeviceStatusCardModels[0].Overload = (data[2] == 1) ? "ON" : "OFF";
+                    DeviceStatusCardModels[0].Mode = (data[3] == 1) ? "StandBy" : "Manual";
+                    DeviceStatusCardModels[0].StandbyLamp = (data[6] == 1) ? "ON" : "OFF";
+                    DeviceStatusCardModels[0].Lowpress = (data[7] == 1) ? "ON" : "OFF";
+                }
+                else if(id == "0x200") // Device 2
+                {
+                    //DeviceStatusCardModels[1].Title = "ID 2";
+                    DeviceStatusCardModels[1].CommStatus = "Connected";
+                    DeviceStatusCardModels[1].StandbyStart = (data[0] == 1) ? "STBY Start" : "STBY Stop";
+                    DeviceStatusCardModels[1].RunStatus = (data[1] == 1) ? "RUN" : "STOP";
+                    DeviceStatusCardModels[1].Overload = (data[2] == 1) ? "ON" : "OFF";
+                    DeviceStatusCardModels[1].Mode = (data[3] == 1) ? "StandBy" : "Manual";
+                    DeviceStatusCardModels[1].StandbyLamp = (data[6] == 1) ? "ON" : "OFF";
+                    DeviceStatusCardModels[1].Lowpress = (data[7] == 1) ? "ON" : "OFF";
+                }
+                else if(id == "0x300") // Device 3
+                {
+                    //DeviceStatusCardModels[2].Title = "ID 3";
+                    DeviceStatusCardModels[2].CommStatus = "Connected";
+                    DeviceStatusCardModels[2].StandbyStart = (data[0] == 1) ? "STBY Start" : "STBY Stop";
+                    DeviceStatusCardModels[2].RunStatus = (data[1] == 1) ? "RUN" : "STOP";
+                    DeviceStatusCardModels[2].Overload = (data[2] == 1) ? "ON" : "OFF";
+                    DeviceStatusCardModels[2].Mode = (data[3] == 1) ? "StandBy" : "Manual";
+                    DeviceStatusCardModels[2].StandbyLamp = (data[6] == 1) ? "ON" : "OFF";
+                    DeviceStatusCardModels[2].Lowpress = (data[7] == 1) ? "ON" : "OFF";
+                }
+            });
+        }
     }
 }

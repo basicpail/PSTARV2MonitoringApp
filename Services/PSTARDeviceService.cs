@@ -16,7 +16,7 @@ namespace PSTARV2MonitoringApp.Services
         private readonly string _deviceId;
         private readonly uint _canId;
         private readonly uint CAN_ID;
-        private readonly int _canTransmitInterval = 1000; // CAN 전송 주기 (ms)
+        private readonly int _canTransmitInterval = 300; // CAN 전송 주기 (ms)
         private readonly int _deviceLoopInterval = 100; // TMR0 가 100ms 주기라서, Logic 수행도 이 주기로 맞춤
         private int _count100_mS = 0;
         private int _buttonPressedTime_mS = 100; // 버튼 누름 지속 시간 (ms)
@@ -524,6 +524,7 @@ namespace PSTARV2MonitoringApp.Services
             data[CANDataIndices.RESET_BUTTON] = (byte)(_model.ResetButton ? 1 : 0);
             data[CANDataIndices.STANDBY_LAMP] = (byte)(_model.STAND_BY_LAMP ? 1 : 0);
             data[CANDataIndices.LOWPRESS] = (byte)(_model.TXLowpress ? 1 : 0); //Lowpress 아니다
+
 
             // CAN 프레임 생성
             var frame = new CANFrame

@@ -34,7 +34,7 @@
                     <ContentPresenter Content="종합 상황 정보" Uid="Info28" ContentTemplate="{StaticResource CardHeaderTemplate}"/>
 
                     <DataGrid Grid.Row="1"
-                              ItemsSource="{Binding ViewModel.LogItems}"
+                              ItemsSource="{Binding ViewModel.DeviceLogs}"
                               AutoGenerateColumns="False"
                               IsReadOnly="True"
                               CanUserAddRows="False" CanUserDeleteRows="False"
@@ -54,16 +54,47 @@
                               ScrollViewer.HorizontalScrollBarVisibility="Auto"
                               ScrollViewer.VerticalScrollBarVisibility="Auto">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="시간"   Binding="{Binding Timestamp}" Width="0.20*"/>
-                            <DataGridTextColumn Header="장치 ID" Binding="{Binding DeviceId}"  Width="0.16*"/>
-                            <DataGridTextColumn Header="상황 정보" Binding="{Binding Message}"   Width="*"/>
+                            <DataGridTextColumn Header="시간"   Binding="{Binding Date, StringFormat=HH:mm:ss}" Width="0.20*"/>
+                            <DataGridTextColumn Header="장치 ID" Binding="{Binding Id}"  Width="0.16*"/>
+                            <DataGridTextColumn Header="상황 정보" Binding="{Binding Contents}"   Width="*"/>
                         </DataGrid.Columns>
+                        <!-- 데이터가 없을 때 표시할 메시지 -->
+                        <!--<DataGrid.Style>
+                            <Style TargetType="DataGrid">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ViewModel.RawDataItems.Count}" Value="0">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="DataGrid">
+                                                    <Border 
+                                                        BorderBrush="{StaticResource CardStroke}" 
+                                                        BorderThickness="2" 
+                                                        Background="{StaticResource Bg}">
+                                                        <Grid>
+                                                            <ScrollViewer x:Name="BlankDataGrid" Focusable="false">
+                                                                <ItemsPresenter x:Name="ItemsPresenter" SnapsToDevicePixels="True"/>
+                                                            </ScrollViewer>
+                                                            <TextBlock Text="수신한 CAN 데이터가 없습니다." 
+                                                                Foreground="#F3F3F3" 
+                                                                HorizontalAlignment="Center" 
+                                                                VerticalAlignment="Center" 
+                                                                FontSize="16"
+                                                                Opacity="0.7"/>
+                                                        </Grid>
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.Style>-->
                     </DataGrid>
                 </Grid>
             </Border>
 
 
-            <!-- Raw Data 카드 (교체본) -->
+            <!-- Raw Data 카드 -->
             <Border x:Name="RawDataDataGrid" Grid.Row="0" Grid.Column="1" Style="{StaticResource Card}" MinHeight="300" VerticalAlignment="Stretch">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -125,18 +156,6 @@
                                             <TextBlock x:Name="txt" Text="OFF" HorizontalAlignment="Center" Foreground="{StaticResource TextSub}"/>
                                         </Border>
                                         <DataTemplate.Triggers>
-                                            <DataTrigger Binding="{Binding STBY_Start}" Value="True">
-                                                <Setter TargetName="pill" Property="Background" Value="#14362A"/>
-                                                <Setter TargetName="pill" Property="BorderBrush" Value="#2AAE84"/>
-                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
-                                                <Setter TargetName="txt"  Property="Foreground" Value="#8FF2C7"/>
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding STBY_Start}" Value="ON">
-                                                <Setter TargetName="pill" Property="Background" Value="#14362A"/>
-                                                <Setter TargetName="pill" Property="BorderBrush" Value="#2AAE84"/>
-                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
-                                                <Setter TargetName="txt"  Property="Foreground" Value="#8FF2C7"/>
-                                            </DataTrigger>
                                             <DataTrigger Binding="{Binding STBY_Start}" Value="1">
                                                 <Setter TargetName="pill" Property="Background" Value="#14362A"/>
                                                 <Setter TargetName="pill" Property="BorderBrush" Value="#2AAE84"/>
@@ -157,18 +176,6 @@
                                             <TextBlock x:Name="txt" Text="OFF" HorizontalAlignment="Center" Foreground="{StaticResource TextSub}"/>
                                         </Border>
                                         <DataTemplate.Triggers>
-                                            <DataTrigger Binding="{Binding RunLamp}" Value="True">
-                                                <Setter TargetName="pill" Property="Background" Value="#132E49"/>
-                                                <Setter TargetName="pill" Property="BorderBrush" Value="#58A9F8"/>
-                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
-                                                <Setter TargetName="txt"  Property="Foreground" Value="#BFE0FF"/>
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding RunLamp}" Value="ON">
-                                                <Setter TargetName="pill" Property="Background" Value="#132E49"/>
-                                                <Setter TargetName="pill" Property="BorderBrush" Value="#58A9F8"/>
-                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
-                                                <Setter TargetName="txt"  Property="Foreground" Value="#BFE0FF"/>
-                                            </DataTrigger>
                                             <DataTrigger Binding="{Binding RunLamp}" Value="1">
                                                 <Setter TargetName="pill" Property="Background" Value="#132E49"/>
                                                 <Setter TargetName="pill" Property="BorderBrush" Value="#58A9F8"/>
@@ -189,18 +196,6 @@
                                             <TextBlock x:Name="txt" Text="OFF" HorizontalAlignment="Center" Foreground="{StaticResource TextSub}"/>
                                         </Border>
                                         <DataTemplate.Triggers>
-                                            <DataTrigger Binding="{Binding Overload}" Value="True">
-                                                <Setter TargetName="pill" Property="Background" Value="#3A1D1D"/>
-                                                <Setter TargetName="pill" Property="BorderBrush" Value="#E57373"/>
-                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
-                                                <Setter TargetName="txt"  Property="Foreground" Value="#FFC1C1"/>
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding Overload}" Value="ON">
-                                                <Setter TargetName="pill" Property="Background" Value="#3A1D1D"/>
-                                                <Setter TargetName="pill" Property="BorderBrush" Value="#E57373"/>
-                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
-                                                <Setter TargetName="txt"  Property="Foreground" Value="#FFC1C1"/>
-                                            </DataTrigger>
                                             <DataTrigger Binding="{Binding Overload}" Value="1">
                                                 <Setter TargetName="pill" Property="Background" Value="#3A1D1D"/>
                                                 <Setter TargetName="pill" Property="BorderBrush" Value="#E57373"/>
@@ -214,7 +209,23 @@
                             </DataGridTemplateColumn>
 
                             <!-- Mode / Run Req / Reset Btn / StandBy / TXLow → 텍스트 or 배지 -->
-                            <DataGridTextColumn Header="Mode"   Binding="{Binding ModeStatus}" Width="0.12*"/>
+                            <DataGridTemplateColumn Header="Mode">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border x:Name="pill" Style="{StaticResource PillBase}">
+                                            <TextBlock x:Name="txt" Text="MAN" HorizontalAlignment="Center" Foreground="{StaticResource TextSub}"/>
+                                        </Border>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding ModeStatus}" Value="1">
+                                                <Setter TargetName="txt"  Property="Text" Value="STBY"/>
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.Width>0.12*</DataGridTemplateColumn.Width>
+                            </DataGridTemplateColumn>
+                            
+                            
                             <DataGridTemplateColumn Header="Run Req">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
@@ -222,18 +233,6 @@
                                             <TextBlock x:Name="txt" Text="OFF" HorizontalAlignment="Center" Foreground="{StaticResource TextSub}"/>
                                         </Border>
                                         <DataTemplate.Triggers>
-                                            <DataTrigger Binding="{Binding RUN_req}" Value="True">
-                                                <Setter TargetName="pill" Property="Background" Value="#1E2E1C"/>
-                                                <Setter TargetName="pill" Property="BorderBrush" Value="#85C47C"/>
-                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
-                                                <Setter TargetName="txt"  Property="Foreground" Value="#CFEFD0"/>
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding RUN_req}" Value="ON">
-                                                <Setter TargetName="pill" Property="Background" Value="#1E2E1C"/>
-                                                <Setter TargetName="pill" Property="BorderBrush" Value="#85C47C"/>
-                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
-                                                <Setter TargetName="txt"  Property="Foreground" Value="#CFEFD0"/>
-                                            </DataTrigger>
                                             <DataTrigger Binding="{Binding RUN_req}" Value="1">
                                                 <Setter TargetName="pill" Property="Background" Value="#1E2E1C"/>
                                                 <Setter TargetName="pill" Property="BorderBrush" Value="#85C47C"/>
@@ -253,18 +252,6 @@
                                             <TextBlock x:Name="txt" Text="OFF" HorizontalAlignment="Center" Foreground="{StaticResource TextSub}"/>
                                         </Border>
                                         <DataTemplate.Triggers>
-                                            <DataTrigger Binding="{Binding ResetButton}" Value="True">
-                                                <Setter TargetName="pill" Property="Background" Value="#2D2A12"/>
-                                                <Setter TargetName="pill" Property="BorderBrush" Value="#CFB253"/>
-                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
-                                                <Setter TargetName="txt"  Property="Foreground" Value="#FAE8A6"/>
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding ResetButton}" Value="ON">
-                                                <Setter TargetName="pill" Property="Background" Value="#2D2A12"/>
-                                                <Setter TargetName="pill" Property="BorderBrush" Value="#CFB253"/>
-                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
-                                                <Setter TargetName="txt"  Property="Foreground" Value="#FAE8A6"/>
-                                            </DataTrigger>
                                             <DataTrigger Binding="{Binding ResetButton}" Value="1">
                                                 <Setter TargetName="pill" Property="Background" Value="#2D2A12"/>
                                                 <Setter TargetName="pill" Property="BorderBrush" Value="#CFB253"/>
@@ -284,13 +271,7 @@
                                             <TextBlock x:Name="txt" Text="OFF" HorizontalAlignment="Center" Foreground="{StaticResource TextSub}"/>
                                         </Border>
                                         <DataTemplate.Triggers>
-                                            <DataTrigger Binding="{Binding StandByLamp}" Value="True">
-                                                <Setter TargetName="pill" Property="Background" Value="#26283B"/>
-                                                <Setter TargetName="pill" Property="BorderBrush" Value="#9C95FF"/>
-                                                <Setter TargetName="txt"  Property="Text" Value="ON"/>
-                                                <Setter TargetName="txt"  Property="Foreground" Value="#D8D5FF"/>
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding StandByLamp}" Value="ON">
+                                            <DataTrigger Binding="{Binding StandByLamp}" Value="1">
                                                 <Setter TargetName="pill" Property="Background" Value="#26283B"/>
                                                 <Setter TargetName="pill" Property="BorderBrush" Value="#9C95FF"/>
                                                 <Setter TargetName="txt"  Property="Text" Value="ON"/>
@@ -309,13 +290,7 @@
                                             <TextBlock x:Name="txt" Text="OFF" HorizontalAlignment="Center" Foreground="{StaticResource TextSub}"/>
                                         </Border>
                                         <DataTemplate.Triggers>
-                                            <DataTrigger Binding="{Binding TXLowpress}" Value="True">
-                                                <Setter TargetName="pill" Property="Background" Value="#3A1D1D"/>
-                                                <Setter TargetName="pill" Property="BorderBrush" Value="#E57373"/>
-                                                <Setter TargetName="txt"  Property="Text" Value="LOW"/>
-                                                <Setter TargetName="txt"  Property="Foreground" Value="#FFC1C1"/>
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding TXLowpress}" Value="ON">
+                                            <DataTrigger Binding="{Binding TXLowpress}" Value="1">
                                                 <Setter TargetName="pill" Property="Background" Value="#3A1D1D"/>
                                                 <Setter TargetName="pill" Property="BorderBrush" Value="#E57373"/>
                                                 <Setter TargetName="txt"  Property="Text" Value="LOW"/>
@@ -327,6 +302,40 @@
                                 <DataGridTemplateColumn.Width>0.13*</DataGridTemplateColumn.Width>
                             </DataGridTemplateColumn>
                         </DataGrid.Columns>
+
+                        <!-- 데이터가 없을 때 표시할 메시지 -->
+                        <!--<DataGrid.Style>
+                            <Style TargetType="DataGrid">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ViewModel.RawDataItems.Count}" Value="0">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="DataGrid">
+                                                    <Border 
+                                                        BorderBrush="{StaticResource CardStroke}" 
+                                                        BorderThickness="2" 
+                                                        Background="{StaticResource Bg}">
+                                                        <Grid>
+                                                            <ScrollViewer x:Name="BlankDataGrid" Focusable="false">
+                                                                <ItemsPresenter x:Name="ItemsPresenter" 
+                                                                SnapsToDevicePixels="True"/>
+                                                            </ScrollViewer>
+                                                            <TextBlock Text="수신한 CAN 데이터가 없습니다." 
+                                                                Foreground="#F3F3F3" 
+                                                                HorizontalAlignment="Center" 
+                                                                VerticalAlignment="Center" 
+                                                                FontSize="16"
+                                                                Opacity="0.7"/>
+                                                        </Grid>
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.Style>-->
+
                     </DataGrid>
                 </Grid>
             </Border>
@@ -339,7 +348,7 @@
                 <!-- 카드가 여러 줄 생기면 스크롤, 3열 고정 -->
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
                     HorizontalScrollBarVisibility="Disabled">
-                    <ItemsControl ItemsSource="{Binding ViewModel.DeviceStatusCardViewModel.DeviceStatusCardModels}">
+                    <ItemsControl ItemsSource="{Binding ViewModel.DeviceStatusCardModels}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <UniformGrid Columns="3"/>
@@ -378,11 +387,11 @@
                                             </Grid.ColumnDefinitions>
 
                                             <!-- 내용 행들 -->
-                                            <StackPanel Grid.Row="0" Grid.Column="0" Style="{StaticResource InfoRow}">
+                                            <!--<StackPanel Grid.Row="0" Grid.Column="0" Style="{StaticResource InfoRow}">
                                                 <Ellipse Style="{StaticResource InfoEllipse}" Fill="#62FF94" />
                                                 <TextBlock Text="통신 상태" Style="{StaticResource Caption}"/>
                                                 <TextBlock Text="{Binding CommStatus}" Style="{StaticResource InfoValue}"/>
-                                            </StackPanel>
+                                            </StackPanel>-->
 
                                             <StackPanel Grid.Row="1" Grid.Column="0" Style="{StaticResource InfoRow}">
                                                 <Ellipse Style="{StaticResource InfoEllipse}" Fill="#62FF94" />
@@ -396,22 +405,28 @@
                                                 <TextBlock Text="{Binding Mode}" Style="{StaticResource InfoValue}"/>
                                             </StackPanel>
 
+                                            <StackPanel Grid.Row="0" Grid.Column="0" Style="{StaticResource InfoRow}">
+                                                <Ellipse Style="{StaticResource InfoEllipse}" Fill="#62FF94" />
+                                                <TextBlock Text="STBY LAMP" Style="{StaticResource Caption}"/>
+                                                <TextBlock Text="{Binding StandbyLamp}" Style="{StaticResource InfoValue}"/>
+                                            </StackPanel>
+
                                             <StackPanel Grid.Row="0" Grid.Column="1"  Style="{StaticResource InfoRow}">
                                                 <Ellipse Style="{StaticResource InfoEllipse}" Fill="#62FF94" />
-                                                <TextBlock Text="STAND BY " Style="{StaticResource Caption}"/>
-                                                <TextBlock Text="{Binding CommStatus}" Style="{StaticResource InfoValue}"/>
+                                                <TextBlock Text="STBY START " Style="{StaticResource Caption}"/>
+                                                <TextBlock Text="{Binding StandbyStart}" Style="{StaticResource InfoValue}"/>
                                             </StackPanel>
 
                                             <StackPanel Grid.Row="1" Grid.Column="1" Style="{StaticResource InfoRow}">
                                                 <Ellipse Style="{StaticResource InfoEllipse}" Fill="#62FF94" />
                                                 <TextBlock Text="OVERLOAD" Style="{StaticResource Caption}"/>
-                                                <TextBlock Text="{Binding RunStatus}" Style="{StaticResource InfoValue}"/>
+                                                <TextBlock Text="{Binding Overload}" Style="{StaticResource InfoValue}"/>
                                             </StackPanel>
 
                                             <StackPanel Grid.Row="2" Grid.Column="1" Style="{StaticResource InfoRow}">
                                                 <Ellipse Style="{StaticResource InfoEllipse}" Fill="#62FF94" />
                                                 <TextBlock Text="LOW PRESS" Style="{StaticResource Caption}"/>
-                                                <TextBlock Text="{Binding Mode}" Style="{StaticResource InfoValue}"/>
+                                                <TextBlock Text="{Binding Lowpress}" Style="{StaticResource InfoValue}"/>
                                             </StackPanel>
                                         </Grid>
                                     </Grid>
